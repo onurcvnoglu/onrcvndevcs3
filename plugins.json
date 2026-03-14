@@ -22,5 +22,31 @@
         "description": "[!] Requires Setup\n- Add your TMDB API key and Stremio manifest.json URLs from plugin settings",
         "url": "https://raw.githubusercontent.com/onurcvnoglu/onrcvndevcs3/builds/Onurcvncs3.cs3",
         "name": "Onurcvncs3"
+    },
+    {
+        "iconUrl": "https://files.catbox.moe/ol63rm.png",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/onurcvnoglu/onrcvndevcs3",
+        "fileSize": 83468,
+        "status": 1,
+        "language": "tr",
+        "authors": [
+            "onurcvnoglu",
+            "phisher98"
+        ],
+        "tvTypes": [
+            "TvSeries",
+            "Movie",
+            "AnimeMovie",
+            "Anime",
+            "Live",
+            "Others",
+            "Torrent"
+        ],
+        "version": 1,
+        "internalName": "UseStremio",
+        "description": "Use configured Stremio manifest URLs for catalog, meta, stream, and subtitle resources",
+        "url": "https://raw.githubusercontent.com/onurcvnoglu/onrcvndevcs3/builds/UseStremio.cs3",
+        "name": "UseStremio"
     }
 ]
