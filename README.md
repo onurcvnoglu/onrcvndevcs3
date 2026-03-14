@@ -1,58 +1,60 @@
-**⚠️ This is currently under development, dont use it yet if you're not comfortable with constantly merging new changes**
+# Onurcvncs3 Cloudstream Plugin
 
-# `Cloudstream3 Plugin Repo Template`
+`Onurcvncs3` is a Cloudstream3 plugin repo that ports Phisher's Stremio addon provider into this repository.
 
-Template for a [Cloudstream3](https://github.com/recloudstream) plugin repo
+## What It Does
 
-**⚠️ Make sure you check "Include all branches" when using this template**
+- Uses TMDB for home page, search, and metadata
+- Lets you add multiple Stremio `manifest.json` URLs from plugin settings
+- Loads links from compatible Stremio stream addons
+- Fetches subtitles from OpenSubtitles and Watchsomuch when available
 
- 
-## Getting started with writing your first plugin
+## Setup
 
-This template includes 1 example plugin.
+Each user must add their own TMDB API key after installing the plugin:
 
-1. Open the root build.gradle.kts, read the comments and replace all the placeholders
-2. Familiarize yourself with the project structure. Most files are commented
-3. Build or deploy your first plugin using:
-   - Windows: `.\gradlew.bat ExampleProvider:make` or `.\gradlew.bat ExampleProvider:deployWithAdb`
-   - Linux & Mac: `./gradlew ExampleProvider:make` or `./gradlew ExampleProvider:deployWithAdb`
+1. Install the `.cs3` plugin file in Cloudstream.
+2. Open plugin settings.
+3. Enter your TMDB API key.
+4. Add one or more Stremio addon `manifest.json` URLs.
+5. Save and restart the app.
 
+For local development, `local.properties` is only needed if Android SDK discovery is not already configured via environment variables.
 
-## Granting All Files Access on Newer Android Devices
+## Build
 
-For local plugin testing, you need to grant the app "All Files Access" on newer Android devices (Android 11 and above). Here’s how to do it:
+- macOS/Linux: `./gradlew Onurcvncs3:make`
+- Windows: `.\gradlew.bat Onurcvncs3:make`
 
-### Using ADB
+To generate plugin metadata as well:
 
-* `adb shell appops set --uid PACKAGE_NAME MANAGE_EXTERNAL_STORAGE allow`
-* Replace `PACKAGE_NAME` with the name of the package for the Cloudstream3 version you are using:
-   - debug: `com.lagradost.cloudstream3.prerelease.debug`
-   - prerelease: `com.lagradost.cloudstream3.prerelease`
-   - stable: `com.lagradost.cloudstream3`
+```bash
+./gradlew Onurcvncs3:make makePluginsJson
+```
 
-### Manually
+## Usage In Cloudstream
 
-1. **Open Settings**: Go to your device’s Settings menu.
+1. Install the generated `.cs3` plugin file.
+2. Open the plugin settings inside Cloudstream.
+3. Enter your TMDB API key.
+4. Add one or more Stremio addon `manifest.json` URLs.
+5. Save and restart the app when prompted.
 
-2. **Navigate to Special Access**:
-   - Tap on "Apps & notifications" or "Apps".
-   - Select "Special app access" or "Special access".
+Example accepted inputs:
 
-3. **Select All Files Access**:
-   - Tap on "All files access".
-   - It may be under the three vertical dots menu towards the top of the screen.
+- `https://example-addon.domain/manifest.json`
+- `stremio://example-addon.domain/manifest.json`
 
-4. **Grant Access to the App**: Find the app in the list and tap on it to toggle it, if it is not already enabled.
+## Important Notes
 
-6. **Restart the App**: Close and reopen the app to apply the changes.
-
-
-## License
-
-Everything in this repo is released into the public domain. You may use it however you want with no conditions whatsoever
-
+- This is not a full Stremio client replacement.
+- Playback depends on the addon providing stream results.
+- TMDB metadata is fetched in Turkish (`tr-TR`).
+- Catalogue-only addons can still show metadata but may return `No link found` during playback.
 
 ## Attribution
 
-This template as well as the gradle plugin and the whole plugin system is **heavily** based on [Aliucord](https://github.com/Aliucord).
-*Go use it, it's a great mobile discord client mod!*
+This port is based on:
+
+- Cloudstream provider documentation: `https://recloudstream.github.io/csdocs/devs/create-your-own-providers/`
+- Phisher's Cloudstream extensions: `https://github.com/phisher98/cloudstream-extensions-phisher`
