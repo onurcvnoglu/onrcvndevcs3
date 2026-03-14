@@ -1,0 +1,8 @@
+{
+  "name": "Onurcvncs3",
+  "description": "Cloudstream repository for the Onurcvncs3 Stremio addon",
+  "manifestVersion": 1,
+  "pluginLists": [
+    "https://raw.githubusercontent.com/onurcvnoglu/onrcvndevcs3/builds/plugins.json"
+  ]
+}
