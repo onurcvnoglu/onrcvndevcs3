@@ -1,0 +1,26 @@
+[
+    {
+        "iconUrl": "https://files.catbox.moe/ol63rm.png",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/onurcvnoglu/onrcvndevcs3",
+        "fileSize": 73716,
+        "status": 1,
+        "language": "tr",
+        "authors": [
+            "onrcvndev",
+            "Hexated",
+            "phisher98",
+            "erynith"
+        ],
+        "tvTypes": [
+            "TvSeries",
+            "Movie",
+            "Torrent"
+        ],
+        "version": 1,
+        "internalName": "Onurcvncs3",
+        "description": "[!] Requires Setup\n- Add your TMDB API key and Stremio manifest.json URLs from plugin settings",
+        "url": "https://raw.githubusercontent.com/onurcvnoglu/onrcvndevcs3/builds/Onurcvncs3.cs3",
+        "name": "Onurcvncs3"
+    }
+]
