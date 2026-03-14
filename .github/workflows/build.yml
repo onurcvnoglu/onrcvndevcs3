@@ -1,0 +1,59 @@
+name: Build
+
+# https://docs.github.com/en/actions/learn-github-actions/workflow-syntax-for-github-actions#concurrency
+concurrency: 
+  group: "build"
+  cancel-in-progress: true
+
+on:
+  push:
+    branches:
+      # choose your default branch
+      - master
+      - main
+    paths-ignore:
+      - '*.md'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          path: "src"
+
+      - name: Checkout builds
+        uses: actions/checkout@v4
+        with:
+          ref: "builds"
+          path: "builds"
+      
+      - name: Clean old builds
+        run: find "$GITHUB_WORKSPACE/builds" -maxdepth 1 -type f \( -name "*.cs3" -o -name "plugins.json" \) -delete
+
+      - name: Setup JDK 17
+        uses: actions/setup-java@v1
+        with:
+          java-version: 17
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v2
+
+      - name: Build Plugins
+        run: |
+          cd $GITHUB_WORKSPACE/src
+          chmod +x gradlew
+          ./gradlew make makePluginsJson
+          find . -path "*/build/*.cs3" -exec cp {} "$GITHUB_WORKSPACE/builds" \;
+          cp build/plugins.json "$GITHUB_WORKSPACE/builds/plugins.json"
+
+      - name: Push builds
+        run: |
+          cd $GITHUB_WORKSPACE/builds
+          git config --local user.email "actions@github.com"
+          git config --local user.name "GitHub Actions"
+          git add .
+          git diff --cached --quiet && exit 0
+          git commit -m "Build $GITHUB_SHA"
+          git push origin HEAD:builds

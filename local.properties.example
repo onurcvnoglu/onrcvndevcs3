@@ -1,0 +1,4 @@
+# sdk.dir is optional if your Android SDK is already discoverable.
+# sdk.dir=/Users/yourname/Library/Android/sdk
+# tmdb api key
+TMDB_API_KEY=your_tmdb_api_key
