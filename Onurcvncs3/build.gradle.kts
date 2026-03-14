@@ -11,7 +11,7 @@ android {
 
 cloudstream {
     description = "[!] Requires Setup\n- Add your TMDB API key and Stremio manifest.json URLs from plugin settings"
-    authors = listOf("onrcvndev", "Hexated", "phisher98", "erynith")
+    authors = listOf("onurcvnoglu", "Hexated", "phisher98", "erynith")
     status = 1
     tvTypes = listOf("TvSeries", "Movie", "Torrent")
     requiresResources = true
