@@ -11,7 +11,7 @@ android {
 
 cloudstream {
     description = "Use configured Stremio manifest URLs for catalog, meta, stream, and subtitle resources"
-    authors = listOf("onurcvnoglu", "phisher98")
+    authors = listOf("onurcvnoglu")
     status = 1
     tvTypes = listOf("TvSeries", "Movie", "AnimeMovie", "Anime", "Live", "Others", "Torrent")
     requiresResources = true
