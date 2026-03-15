@@ -8,6 +8,7 @@ import com.lagradost.api.Log
 import com.lagradost.cloudstream3.Actor
 import com.lagradost.cloudstream3.ActorData
 import com.lagradost.cloudstream3.ErrorLoadingException
+import com.lagradost.cloudstream3.HomePageList
 import com.lagradost.cloudstream3.HomePageResponse
 import com.lagradost.cloudstream3.LoadResponse
 import com.lagradost.cloudstream3.LoadResponse.Companion.addTrailer
@@ -67,10 +68,9 @@ class UseStremioProvider(private val sharedPref: SharedPreferences) : MainAPI() 
         TvType.Torrent,
     )
 
-    override val mainPage: List<MainPageData>
-        get() = runCatching {
-            runBlocking { ensureManifestState() }.mainPageEntries
-        }.getOrElse { emptyList() }
+    override val mainPage: List<MainPageData> = listOf(
+        buildMainPage(HOME_PAGE_DATA, "Catalogs", false)
+    )
 
     private val manifestMutex = Mutex()
     private val trackerMutex = Mutex()
@@ -127,9 +127,6 @@ class UseStremioProvider(private val sharedPref: SharedPreferences) : MainAPI() 
                 manifests = manifests,
                 homeCatalogs = homeCatalogs,
                 searchableCatalogs = searchableCatalogs,
-                mainPageEntries = homeCatalogs.map { catalog ->
-                    buildMainPage(catalog.toRequest().toJson(), catalog.sectionTitle, false)
-                }
             )
 
             catalogPageSizeOverrides.clear()
@@ -228,23 +225,38 @@ class UseStremioProvider(private val sharedPref: SharedPreferences) : MainAPI() 
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
         val state = ensureManifestState()
-        val catalogRequest = parseJson<CatalogRequest>(request.data)
-        val catalog = state.homeCatalogs.firstOrNull {
-            it.manifestUrl == catalogRequest.manifestUrl &&
-                it.catalogId == catalogRequest.catalogId &&
-                it.catalogType.equals(catalogRequest.catalogType, ignoreCase = true)
-        } ?: throw ErrorLoadingException("Catalog not found.")
-
-        val metas = fetchCatalogMetas(catalog, page, search = null)
-        val items = metas.mapNotNull { meta ->
-            meta.toLoadPreview(
-                preferredMetaManifest = catalog.manifestUrl,
-                fallbackType = catalog.catalogType,
-                fallbackAddonName = catalog.addonName,
-            )?.toSearchResponse()
+        if (state.homeCatalogs.isEmpty()) {
+            throw ErrorLoadingException("No browseable catalogs found in the configured manifests.")
         }
-        val hasNext = metas.size >= getEffectivePageSize(catalog)
-        return newHomePageResponse(request, items, hasNext)
+
+        val sections = coroutineScope {
+            state.homeCatalogs.map { catalog ->
+                async {
+                    val metas = fetchCatalogMetas(catalog, page, search = null)
+                    val items = metas.mapNotNull { meta ->
+                        meta.toLoadPreview(
+                            preferredMetaManifest = catalog.manifestUrl,
+                            fallbackType = catalog.catalogType,
+                            fallbackAddonName = catalog.addonName,
+                        )?.toSearchResponse()
+                    }
+
+                    ResolvedHomePageSection(
+                        list = HomePageList(catalog.sectionTitle, items),
+                        hasNext = metas.size >= getEffectivePageSize(catalog),
+                    )
+                }
+            }.awaitAll()
+        }.filter { it.list.list.isNotEmpty() }
+
+        if (sections.isEmpty()) {
+            throw ErrorLoadingException("Configured manifests returned no catalog items.")
+        }
+
+        return newHomePageResponse(
+            sections.map { it.list },
+            hasNext = sections.any { it.hasNext }
+        )
     }
 
     override suspend fun quickSearch(query: String): List<SearchResponse>? = search(query, 1)?.items
@@ -973,7 +985,11 @@ class UseStremioProvider(private val sharedPref: SharedPreferences) : MainAPI() 
         val manifests: List<ResolvedManifest>,
         val homeCatalogs: List<ResolvedCatalog>,
         val searchableCatalogs: List<ResolvedCatalog>,
-        val mainPageEntries: List<MainPageData>,
+    )
+
+    private data class ResolvedHomePageSection(
+        val list: HomePageList,
+        val hasNext: Boolean,
     )
 
     private data class ResolvedManifest(
@@ -1018,25 +1034,11 @@ class UseStremioProvider(private val sharedPref: SharedPreferences) : MainAPI() 
 
         val supportsSearch: Boolean
             get() = extras.any { it.name == "search" }
-
-        fun toRequest(): CatalogRequest {
-            return CatalogRequest(
-                manifestUrl = manifestUrl,
-                catalogId = catalogId,
-                catalogType = catalogType
-            )
-        }
     }
 
     private data class MetaCandidate(
         val meta: StremioMeta,
         val sourceManifestUrl: String,
-    )
-
-    private data class CatalogRequest(
-        val manifestUrl: String,
-        val catalogId: String,
-        val catalogType: String,
     )
 
     private data class LoadPreview(
@@ -1069,5 +1071,6 @@ class UseStremioProvider(private val sharedPref: SharedPreferences) : MainAPI() 
         private const val TRACKER_LIST_URL =
             "https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_best.txt"
         private const val DEFAULT_PAGE_SIZE = 50
+        private const val HOME_PAGE_DATA = "usestremio://catalogs"
     }
 }
