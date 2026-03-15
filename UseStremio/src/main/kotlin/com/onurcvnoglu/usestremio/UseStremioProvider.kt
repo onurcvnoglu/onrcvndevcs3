@@ -49,6 +49,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.json.JSONObject
+import java.util.concurrent.ConcurrentHashMap
 
 class UseStremioProvider(private val sharedPref: SharedPreferences) : MainAPI() {
     override var mainUrl = "https://www.stremio.com"
@@ -73,6 +74,7 @@ class UseStremioProvider(private val sharedPref: SharedPreferences) : MainAPI() 
 
     private val manifestMutex = Mutex()
     private val trackerMutex = Mutex()
+    private val catalogPageSizeOverrides = ConcurrentHashMap<String, Int>()
 
     @Volatile
     private var manifestState: ManifestState? = null
@@ -130,6 +132,7 @@ class UseStremioProvider(private val sharedPref: SharedPreferences) : MainAPI() 
                 }
             )
 
+            catalogPageSizeOverrides.clear()
             manifestState = state
             state
         }
@@ -192,7 +195,7 @@ class UseStremioProvider(private val sharedPref: SharedPreferences) : MainAPI() 
         search: String?
     ): List<Pair<String, String>>? {
         val extras = mutableListOf<Pair<String, String>>()
-        val skipValue = ((page - 1) * (catalog.pageSize ?: DEFAULT_PAGE_SIZE)).coerceAtLeast(0).toString()
+        val skipValue = ((page - 1) * getEffectivePageSize(catalog)).coerceAtLeast(0).toString()
 
         for (extra in catalog.extras) {
             when (extra.name) {
@@ -204,9 +207,11 @@ class UseStremioProvider(private val sharedPref: SharedPreferences) : MainAPI() 
                 }
 
                 else -> {
+                    if (!extra.isRequired) continue
+
                     val chosenValue = when {
                         !extra.defaultValue.isNullOrBlank() -> extra.defaultValue
-                        extra.isRequired && extra.options.isNotEmpty() -> extra.options.first()
+                        extra.options.isNotEmpty() -> extra.options.first()
                         else -> null
                     }
 
@@ -238,7 +243,7 @@ class UseStremioProvider(private val sharedPref: SharedPreferences) : MainAPI() 
                 fallbackAddonName = catalog.addonName,
             )?.toSearchResponse()
         }
-        val hasNext = catalog.pageSize?.let { items.size >= it } ?: false
+        val hasNext = metas.size >= getEffectivePageSize(catalog)
         return newHomePageResponse(request, items, hasNext)
     }
 
@@ -260,7 +265,7 @@ class UseStremioProvider(private val sharedPref: SharedPreferences) : MainAPI() 
         var hasNext = false
 
         searchResults.forEach { (metas, catalog) ->
-            hasNext = hasNext || (catalog.pageSize?.let { metas.size >= it } ?: false)
+            hasNext = hasNext || metas.size >= getEffectivePageSize(catalog)
             metas.forEach { meta ->
                 val preview = meta.toLoadPreview(
                     preferredMetaManifest = catalog.manifestUrl,
@@ -431,11 +436,21 @@ class UseStremioProvider(private val sharedPref: SharedPreferences) : MainAPI() 
         val url = buildCatalogUrl(catalog.baseUrl, catalog.catalogType, catalog.catalogId, extras)
 
         return runCatching {
-            app.get(url, timeout = 15L).parsedSafe<StremioCatalogResponse>()?.metas.orEmpty()
+            app.get(url, timeout = 15L).parsedSafe<StremioCatalogResponse>()?.metas.orEmpty().also { metas ->
+                if (metas.isNotEmpty()) {
+                    catalogPageSizeOverrides[catalog.cacheKey] = metas.size
+                }
+            }
         }.getOrElse {
             Log.e(name, "Error loading catalog resource from ${catalog.manifestUrl}")
             emptyList()
         }
+    }
+
+    private fun getEffectivePageSize(catalog: ResolvedCatalog): Int {
+        return catalogPageSizeOverrides[catalog.cacheKey]
+            ?: catalog.pageSize
+            ?: DEFAULT_PAGE_SIZE
     }
 
     private suspend fun resolveMeta(preview: LoadPreview, state: ManifestState): MetaCandidate? {
@@ -997,6 +1012,9 @@ class UseStremioProvider(private val sharedPref: SharedPreferences) : MainAPI() 
     ) {
         val sectionTitle: String
             get() = "$addonName • $catalogName"
+
+        val cacheKey: String
+            get() = "$manifestUrl|${catalogType.lowercase()}|$catalogId"
 
         val supportsSearch: Boolean
             get() = extras.any { it.name == "search" }
