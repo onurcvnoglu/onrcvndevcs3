@@ -27,7 +27,7 @@
         "iconUrl": "https://files.catbox.moe/ol63rm.png",
         "apiVersion": 1,
         "repositoryUrl": "https://github.com/onurcvnoglu/onrcvndevcs3",
-        "fileSize": 83783,
+        "fileSize": 83784,
         "status": 1,
         "language": "tr",
         "authors": [
@@ -42,7 +42,7 @@
             "Others",
             "Torrent"
         ],
-        "version": 1,
+        "version": 2,
         "internalName": "UseStremio",
         "description": "Use configured Stremio manifest URLs for catalog, meta, stream, and subtitle resources",
         "url": "https://raw.githubusercontent.com/onurcvnoglu/onrcvndevcs3/builds/UseStremio.cs3",
