@@ -115,8 +115,8 @@ class UseStremioProvider(private val sharedPref: SharedPreferences) : MainAPI() 
             }.filterNotNull()
 
             val homeCatalogs = manifests.flatMap { manifest ->
-                manifest.catalogs.filter { it.showInHome && canResolveCatalogExtras(it, search = null) }
-            }
+                manifest.catalogs.filter { canResolveCatalogExtras(it, search = null) }
+            }.sortedByDescending { it.showInHome }
 
             val searchableCatalogs = manifests.flatMap { manifest ->
                 manifest.catalogs.filter { it.supportsSearch && canResolveCatalogExtras(it, search = "test") }
@@ -128,7 +128,7 @@ class UseStremioProvider(private val sharedPref: SharedPreferences) : MainAPI() 
                 homeCatalogs = homeCatalogs,
                 searchableCatalogs = searchableCatalogs,
                 mainPageEntries = homeCatalogs.map { catalog ->
-                    buildMainPage(catalog.sectionTitle, catalog.toRequest().toJson(), false)
+                    buildMainPage(catalog.toRequest().toJson(), catalog.sectionTitle, false)
                 }
             )
 
