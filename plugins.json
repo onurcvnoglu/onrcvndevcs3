@@ -27,7 +27,7 @@
         "iconUrl": "https://files.catbox.moe/ol63rm.png",
         "apiVersion": 1,
         "repositoryUrl": "https://github.com/onurcvnoglu/onrcvndevcs3",
-        "fileSize": 84492,
+        "fileSize": 84823,
         "status": 1,
         "language": "tr",
         "authors": [
@@ -47,5 +47,27 @@
         "description": "Use configured Stremio manifest URLs for catalog, meta, stream, and subtitle resources",
         "url": "https://raw.githubusercontent.com/onurcvnoglu/onrcvndevcs3/builds/UseStremio.cs3",
         "name": "UseStremio"
+    },
+    {
+        "iconUrl": "https://xprime.su/favicon.png",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/onurcvnoglu/onrcvndevcs3",
+        "fileSize": 53943,
+        "status": 1,
+        "language": "tr",
+        "authors": [
+            "onurcvnoglu"
+        ],
+        "tvTypes": [
+            "TvSeries",
+            "Movie",
+            "Anime",
+            "AnimeMovie"
+        ],
+        "version": 1,
+        "internalName": "xPrime",
+        "description": "xPrime - Film, Dizi, Anime ve TV icerikleri",
+        "url": "https://raw.githubusercontent.com/onurcvnoglu/onrcvndevcs3/builds/xPrime.cs3",
+        "name": "xPrime"
     }
 ]
