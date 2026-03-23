@@ -1,5 +1,6 @@
 package com.onurcvnoglu.xprime
 
+import android.util.Base64
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.lagradost.api.Log
 import com.lagradost.cloudstream3.Actor
@@ -34,6 +35,7 @@ import com.lagradost.cloudstream3.utils.getQualityFromName
 import com.lagradost.cloudstream3.utils.newExtractorLink
 import com.onurcvnoglu.xprime.XPrimeExtractors.invokeOpenSubs
 import com.onurcvnoglu.xprime.XPrimeExtractors.invokeXPrimeSubs
+import java.security.MessageDigest
 
 class XPrimeProvider : MainAPI() {
     override var mainUrl = "https://xprime.su"
@@ -282,7 +284,7 @@ class XPrimeProvider : MainAPI() {
 
         runAllAsync(
                 // xPrime akış kaynakları
-                suspend { invokeXPrimeServers(loadData, subtitleCallback, callback) },
+                suspend { invokeXPrimeServers(loadData, callback) },
                 // xPrime altyazıları
                 suspend {
                     invokeXPrimeSubs(
@@ -307,11 +309,63 @@ class XPrimeProvider : MainAPI() {
         return true
     }
 
+    // ==================== Altcha PoW Solver ====================
+
+    private fun sha256Hex(input: String): String {
+        val digest = MessageDigest.getInstance("SHA-256")
+        val hash = digest.digest(input.toByteArray(Charsets.UTF_8))
+        return hash.joinToString("") { "%02x".format(it) }
+    }
+
+    private suspend fun solveAltchaChallenge(): String? {
+        val challengeResponse =
+                runCatching {
+                            app.get("$XPRIME_API_BASE/altcha/challenge", timeout = 10L)
+                                    .parsedSafe<AltchaChallenge>()
+                        }
+                        .getOrNull()
+                        ?: return null
+
+        val algorithm = challengeResponse.algorithm ?: "SHA-256"
+        val challenge = challengeResponse.challenge ?: return null
+        val salt = challengeResponse.salt ?: return null
+        val signature = challengeResponse.signature ?: return null
+        val maxNumber = challengeResponse.maxnumber ?: 100000
+
+        // SHA-256 brute-force: SHA256(salt + number) == challenge
+        var solvedNumber: Int? = null
+        for (n in 0..maxNumber) {
+            val hash = sha256Hex("$salt$n")
+            if (hash == challenge) {
+                solvedNumber = n
+                break
+            }
+        }
+
+        if (solvedNumber == null) {
+            Log.e("xPrime", "Altcha challenge çözülemedi (max: $maxNumber)")
+            return null
+        }
+
+        // Base64 encoded JSON payload oluştur
+        val payload =
+                """{"algorithm":"$algorithm","challenge":"$challenge","number":$solvedNumber,"salt":"$salt","signature":"$signature"}"""
+        return Base64.encodeToString(payload.toByteArray(Charsets.UTF_8), Base64.NO_WRAP)
+    }
+
+    // ==================== Stream Fetching ====================
+
     private suspend fun invokeXPrimeServers(
             loadData: XPrimeLoadData,
-            subtitleCallback: (SubtitleFile) -> Unit,
             callback: (ExtractorLink) -> Unit
     ) {
+        // Altcha challenge çöz
+        val altchaToken = solveAltchaChallenge()
+        if (altchaToken == null) {
+            Log.e("xPrime", "Altcha token alınamadı")
+            return
+        }
+
         // Sunucu listesini al
         val servers =
                 runCatching {
@@ -333,7 +387,12 @@ class XPrimeProvider : MainAPI() {
                         )
 
         for (serverName in servers) {
-            runCatching { invokeXPrimeServer(serverName, loadData, subtitleCallback, callback) }
+            // Her sunucu için farklı bir altcha challenge çözülmeli
+            val token =
+                    if (serverName == servers.first()) altchaToken
+                    else solveAltchaChallenge() ?: continue
+
+            runCatching { invokeXPrimeServer(serverName, loadData, token, callback) }
                     .onFailure { Log.e("xPrime", "Server $serverName hatası: ${it.message}") }
         }
     }
@@ -341,7 +400,7 @@ class XPrimeProvider : MainAPI() {
     private suspend fun invokeXPrimeServer(
             serverName: String,
             loadData: XPrimeLoadData,
-            subtitleCallback: (SubtitleFile) -> Unit,
+            altchaToken: String,
             callback: (ExtractorLink) -> Unit
     ) {
         val queryParams =
@@ -352,6 +411,7 @@ class XPrimeProvider : MainAPI() {
                             loadData.imdbId?.let { add("imdb=$it") }
                             loadData.season?.let { add("season=$it") }
                             loadData.episode?.let { add("episode=$it") }
+                            add("altcha=$altchaToken")
                         }
                         .joinToString("&")
 
@@ -371,36 +431,116 @@ class XPrimeProvider : MainAPI() {
         val text = response.text
         if (text.isBlank()) return
 
-        // JSON yanıtı parse et
+        Log.d("xPrime", "Server $serverName yanıt (${text.length} char): ${text.take(50)}")
+
+        // Yanıt şifreli olabilir (AQAA ile başlar) veya düz JSON
+        if (text.startsWith("{") || text.startsWith("[")) {
+            // Düz JSON yanıt
+            parseJsonResponse(serverName, text, callback)
+        } else {
+            // Şifreli yanıt - worker URL'lerini doğrudan bulmayı dene
+            // Yanıt base64 encoded olabilir, decode edip içinde URL arayalım
+            runCatching {
+                val decoded = String(Base64.decode(text, Base64.DEFAULT), Charsets.UTF_8)
+                if (decoded.contains("http")) {
+                    // URL bulundu
+                    val urlRegex = Regex("""(https?://[^\s"'<>]+\.m3u8[^\s"'<>]*)""")
+                    val workerRegex =
+                            Regex("""(https?://[^\s"'<>]*workers\.dev[^\s"'<>]*)""")
+
+                    urlRegex.findAll(decoded).forEach { match ->
+                        callback.invoke(
+                                newExtractorLink(
+                                        "xPrime",
+                                        "xPrime - $serverName",
+                                        match.value,
+                                        INFER_TYPE,
+                                ) {
+                                    quality = Qualities.Unknown.value
+                                    headers = mapOf("Referer" to mainUrl)
+                                }
+                        )
+                    }
+
+                    workerRegex.findAll(decoded).forEach { match ->
+                        callback.invoke(
+                                newExtractorLink(
+                                        "xPrime",
+                                        "xPrime - $serverName [Worker]",
+                                        match.value,
+                                        INFER_TYPE,
+                                ) {
+                                    quality = Qualities.Unknown.value
+                                    headers = mapOf("Referer" to mainUrl)
+                                }
+                        )
+                    }
+                }
+
+                // JSON olarak parse etmeyi dene
+                if (decoded.startsWith("{")) {
+                    parseJsonResponse(serverName, decoded, callback)
+                }
+            }
+
+            // Şifreli yanıt için alternatif: XOR / simple cipher denemesi
+            runCatching {
+                val bytes = Base64.decode(text, Base64.DEFAULT)
+                // Versiyon byte'ını atla (ilk 3 byte: 01 00 00)
+                if (bytes.size > 3 && bytes[0].toInt() == 1) {
+                    val payload = bytes.copyOfRange(3, bytes.size)
+                    // Basit XOR denemesi - ilk birkaç key ile
+                    for (key in listOf(0x42, 0x58, 0x50)) {  // B, X, P
+                        val decoded2 = String(payload.map { (it.toInt() xor key).toByte() }.toByteArray())
+                        if (decoded2.contains("http") || decoded2.contains("url")) {
+                            Log.d("xPrime", "XOR decoded ($key): ${decoded2.take(100)}")
+                            if (decoded2.startsWith("{")) {
+                                parseJsonResponse(serverName, decoded2, callback)
+                            }
+                            break
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private suspend fun parseJsonResponse(
+            serverName: String,
+            jsonText: String,
+            callback: (ExtractorLink) -> Unit
+    ) {
         runCatching {
-            val serverResponse = response.parsedSafe<XPrimeServerResponse>()
-            serverResponse?.url?.let { streamUrl ->
+            val serverResponse = parseJson<XPrimeServerResponse>(jsonText)
+
+            // Doğrudan URL
+            serverResponse.url?.let { streamUrl ->
                 if (streamUrl.isNotBlank()) {
                     callback.invoke(
                             newExtractorLink(
-                                    "xPrime - $serverName",
+                                    "xPrime",
                                     "xPrime - $serverName",
                                     streamUrl,
                                     INFER_TYPE,
                             ) {
-                                quality = getQualityFromServer(serverName, serverResponse.quality)
+                                quality = getQualityFromServer(serverResponse.quality)
                                 headers = mapOf("Referer" to mainUrl)
                             }
                     )
                 }
             }
 
-            // Birden fazla kaynak varsa
-            serverResponse?.sources?.forEach { source ->
+            // Birden fazla kaynak
+            serverResponse.sources?.forEach { source ->
                 val sourceUrl = source.url ?: return@forEach
                 callback.invoke(
                         newExtractorLink(
-                                "xPrime - $serverName",
+                                "xPrime",
                                 "xPrime - $serverName [${source.quality ?: "Auto"}]",
                                 sourceUrl,
                                 INFER_TYPE,
                         ) {
-                            quality = getQualityFromServer(serverName, source.quality)
+                            quality = getQualityFromServer(source.quality)
                             headers = buildMap {
                                 put("Referer", mainUrl)
                                 source.headers?.forEach { (k, v) -> put(k, v) }
@@ -409,12 +549,12 @@ class XPrimeProvider : MainAPI() {
                 )
             }
 
-            // Embed URL varsa
-            serverResponse?.embed?.let { embedUrl ->
+            // Embed URL
+            serverResponse.embed?.let { embedUrl ->
                 if (embedUrl.isNotBlank()) {
                     callback.invoke(
                             newExtractorLink(
-                                    "xPrime - $serverName",
+                                    "xPrime",
                                     "xPrime - $serverName [Embed]",
                                     embedUrl,
                                     INFER_TYPE,
@@ -425,17 +565,10 @@ class XPrimeProvider : MainAPI() {
                     )
                 }
             }
-
-            // Altyazılar
-            serverResponse?.subtitles?.forEach { subtitle ->
-                val lang = subtitle.lang ?: subtitle.label ?: return@forEach
-                val subUrl = subtitle.url ?: return@forEach
-                subtitleCallback.invoke(com.lagradost.cloudstream3.newSubtitleFile(lang, subUrl))
-            }
         }
     }
 
-    private fun getQualityFromServer(serverName: String, quality: String?): Int {
+    private fun getQualityFromServer(quality: String?): Int {
         if (quality != null) {
             return getQualityFromName(quality)
         }
@@ -459,6 +592,15 @@ class XPrimeProvider : MainAPI() {
             @JsonProperty("type") val type: String? = null,
     )
 
+    // Altcha
+    data class AltchaChallenge(
+            @JsonProperty("algorithm") val algorithm: String? = null,
+            @JsonProperty("challenge") val challenge: String? = null,
+            @JsonProperty("maxnumber") val maxnumber: Int? = null,
+            @JsonProperty("salt") val salt: String? = null,
+            @JsonProperty("signature") val signature: String? = null,
+    )
+
     // xPrime API Responses
     data class XPrimeServersResponse(
             @JsonProperty("servers") val servers: List<XPrimeServer>? = null,
@@ -476,6 +618,7 @@ class XPrimeProvider : MainAPI() {
             @JsonProperty("embed") val embed: String? = null,
             @JsonProperty("sources") val sources: List<XPrimeSource>? = null,
             @JsonProperty("subtitles") val subtitles: List<XPrimeSubtitle>? = null,
+            @JsonProperty("type") val type: String? = null,
     )
 
     data class XPrimeSource(
