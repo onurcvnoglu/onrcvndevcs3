@@ -16,6 +16,9 @@ class FilmExtra : MainAPI() {
     override var lang = "tr"
     override val hasMainPage = true
     override val hasQuickSearch = true
+    override var sequentialMainPage = true
+    override var sequentialMainPageDelay = 150L
+    override var sequentialMainPageScrollDelay = 150L
 
     // Sağlayıcılar kendi MainAPI bağlamıyla çalıştığı için relative URL'ler doğru domaine çözülür.
     private val providers = listOf<MainAPI>(
@@ -39,9 +42,9 @@ class FilmExtra : MainAPI() {
     }
 
     override val mainPage = providers.flatMap { provider ->
-        // Her sağlayıcının mainPage listesini benzersiz bir ön ek ile birleştiriyoruz
+        // Cloudstream MainPageData sırası "başlık, veri" olduğu için sağlayıcı bilgisini data alanında saklıyoruz.
         provider.mainPage.map { page ->
-            MainPageData("${provider.name}|${page.data}", "${provider.name} - ${page.name}")
+            MainPageData("${provider.name} - ${page.name}", "${provider.name}|${page.data}")
         }
     }
 

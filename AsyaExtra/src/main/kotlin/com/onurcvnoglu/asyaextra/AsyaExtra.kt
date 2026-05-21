@@ -16,6 +16,9 @@ class AsyaExtra : MainAPI() {
     override var lang = "tr"
     override val hasMainPage = true
     override val hasQuickSearch = true
+    override var sequentialMainPage = true
+    override var sequentialMainPageDelay = 150L
+    override var sequentialMainPageScrollDelay = 150L
 
     private val providers: List<MainAPI> = listOf(
         DiziKorea(),
@@ -42,11 +45,11 @@ class AsyaExtra : MainAPI() {
             val pages = provider.mainPage
             if (pages.isEmpty()) {
                 // Eğer provider'ın mainPage listesi boşsa varsayılan bir sayfa oluştur
-                listOf(MainPageData("${provider.name}|", provider.name))
+                listOf(MainPageData(provider.name, "${provider.name}|"))
             } else {
-                // Sağlayıcı sayısı sınırlandırıldığı için tüm kategorileri yükle
+                // Cloudstream MainPageData sırası "başlık, veri" olduğu için sağlayıcı bilgisini data alanında saklıyoruz.
                 pages.map { page ->
-                    MainPageData("${provider.name}|${page.data}", "${provider.name} - ${page.name}")
+                    MainPageData("${provider.name} - ${page.name}", "${provider.name}|${page.data}")
                 }
             }
         } else {
