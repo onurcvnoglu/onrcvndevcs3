@@ -24,15 +24,9 @@ class DiziExtra : MainAPI() {
     override val hasQuickSearch = true
 
     private val providers = listOf(
-        DDizi(),
-        DiziBox(),
-        DiziMom(),
-        DiziPal(),
         DiziPalOriginal(),
-        DiziYou(),
         Dizilla(),
-        SezonlukDizi(),
-        Tlctr()
+        SezonlukDizi()
     )
 
     private fun getProviderForUrl(url: String): MainAPI? {
@@ -51,8 +45,15 @@ class DiziExtra : MainAPI() {
 
     override val mainPage = providers.flatMap { provider ->
         if (provider.hasMainPage) {
-            provider.mainPage.map { page ->
-                MainPageData("${provider.name}|${page.data}", "${provider.name} - ${page.name}")
+            val pages = provider.mainPage
+            if (pages.isEmpty()) {
+                // Eğer provider'ın mainPage listesi boşsa varsayılan bir sayfa oluştur
+                listOf(MainPageData("${provider.name}|", provider.name))
+            } else {
+                // Sağlayıcı sayısı sınırlandırıldığı için tüm kategorileri yükle
+                pages.map { page ->
+                    MainPageData("${provider.name}|${page.data}", "${provider.name} - ${page.name}")
+                }
             }
         } else {
             emptyList()
@@ -61,9 +62,9 @@ class DiziExtra : MainAPI() {
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse? {
         val parts = request.data.split("|", limit = 2)
-        if (parts.size < 2) return null
+        if (parts.isEmpty()) return null
         val providerName = parts[0]
-        val originalData = parts[1]
+        val originalData = if (parts.size > 1) parts[1] else ""
         
         val provider = providers.find { it.name == providerName } ?: return null
         
@@ -71,7 +72,21 @@ class DiziExtra : MainAPI() {
         val newRequest = MainPageRequest(cleanName, originalData, request.horizontalImages)
         
         return try {
-            provider.getMainPage(page, newRequest)
+            val response = provider.getMainPage(page, newRequest)
+            if (response != null) {
+                // Eğer response birden fazla kategori satırı içeriyorsa tek satırda birleştirip düzleştiriyoruz
+                if (response.items.size > 1) {
+                    val allResults = response.items.flatMap { it.list }
+                    newHomePageResponse(
+                        listOf(HomePageList(cleanName, allResults, isHorizontalImages = response.items.firstOrNull()?.isHorizontalImages ?: true)),
+                        response.hasNext
+                    )
+                } else {
+                    response
+                }
+            } else {
+                null
+            }
         } catch (e: Throwable) {
             e.printStackTrace()
             null

@@ -19,6 +19,46 @@ class MainUrlUpdater:
         self.oturum   = CloudScraper()
         self.eklenti_dizinleri = ["DiziExtra", "FilmExtra", "AnimeExtra", "AsyaExtra"]
 
+    def _aktif_saglayicilari_bul(self, eklenti, eklenti_yolu):
+        ana_dosya_yolu = os.path.join(eklenti_yolu, "com", "onurcvnoglu", eklenti.lower(), f"{eklenti}.kt")
+        if not os.path.exists(ana_dosya_yolu):
+            return None
+        
+        try:
+            with open(ana_dosya_yolu, "r", encoding="utf-8") as file:
+                icerik = file.read()
+        except Exception:
+            return None
+            
+        start_match = re.search(r'providers\s*=\s*listOf\s*\(', icerik)
+        if not start_match:
+            return None
+            
+        start_idx = start_match.end()
+        depth = 1
+        end_idx = start_idx
+        while depth > 0 and end_idx < len(icerik):
+            char = icerik[end_idx]
+            if char == '(':
+                depth += 1
+            elif char == ')':
+                depth -= 1
+            end_idx += 1
+            
+        if depth > 0:
+            return None
+            
+        providers_block = icerik[start_idx:end_idx-1]
+        aktifler = []
+        for line in providers_block.splitlines():
+            line_clean = line.strip()
+            if line_clean.startswith("//"):
+                continue
+            class_matches = re.findall(r'([a-zA-Z0-9_]+)\s*\(\)', line_clean)
+            aktifler.extend(class_matches)
+            
+        return set(aktifler)
+
     def _kt_dosyalarini_bul(self):
         # Bu fonksiyon, eklenti dizinleri altındaki ana provider Kotlin dosyalarını bulur.
         # Mantık: Kotlin dosyasının uzantısız adı (case-insensitive) ile bulunduğu klasörün adı eşit olmalıdır.
@@ -28,6 +68,8 @@ class MainUrlUpdater:
             if not os.path.exists(eklenti_yolu):
                 continue
             
+            aktif_saglayicilar = self._aktif_saglayicilari_bul(eklenti, eklenti_yolu)
+            
             for kok, alt_dizinler, dosyalar in os.walk(eklenti_yolu):
                 for dosya in dosyalar:
                     if dosya.endswith(".kt"):
@@ -35,6 +77,10 @@ class MainUrlUpdater:
                         dosya_adi_uzantisiz = dosya[:-3]
                         # Case-insensitive eşleştirme
                         if klasor_adi.lower() == dosya_adi_uzantisiz.lower():
+                            # Sadece aktif sağlayıcıları ve ana eklenti sınıfını kontrol et
+                            if aktif_saglayicilar is not None:
+                                if dosya_adi_uzantisiz != eklenti and dosya_adi_uzantisiz not in aktif_saglayicilar:
+                                    continue
                             hedef_dosyalar.append((eklenti, os.path.join(kok, dosya)))
         return hedef_dosyalar
 

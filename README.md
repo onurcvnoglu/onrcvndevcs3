@@ -1,71 +1,62 @@
-# Onurcvnoglu Cloudstream Plugins
+# Cloudstream Extra Eklentileri (Turkish Extra Plugins)
 
-This repository currently contains two Cloudstream3 plugins built around Stremio addon support.
+Bu depo (repository), Cloudstream uygulaması için özelleştirilmiş Türkçe film, dizi, anime ve Asya dizileri sağlayıcı eklentilerini içerir. 
 
-## Included Plugins
+Uygulama arayüzünde kalabalık olmasını engellemek amacıyla tüm alt kaynaklar 4 ana çatı eklenti altında birleştirilmiştir:
 
-### `Onurcvncs3`
+1. **Film Extra 🎬**: En popüler Türkçe film sitelerinden içerikleri bir araya getirir.
+2. **Dizi Extra 📺**: Türkçe yabancı dizi platformlarındaki içerikleri listeler.
+3. **Anime Extra ⛩️**: Türkçe anime izleme platformlarındaki tüm anime ve anime filmlerini sunar.
+4. **Asya Extra 🌸**: Kore, Çin, Tayland dizileri ve filmlerini içeren Türkçe Asya dizi kaynaklarını barındırır.
 
-- Uses TMDB for home page, search, and metadata
-- Lets users add multiple Stremio `manifest.json` URLs from plugin settings
-- Loads links from compatible Stremio stream addons
-- Adds OpenSubtitles and Watchsomuch fallbacks
+---
 
-### `UseStremio`
+## 🚀 Cloudstream'e Nasıl Eklenir? (Kurulum)
 
-- Does not use TMDB
-- Uses only user-provided Stremio manifests at runtime
-- Reads catalog, meta, stream, and subtitle resources directly from compatible Stremio addons
-- Works best with already configured Stremio addon URLs
+Eklentileri Cloudstream uygulamanıza doğrudan kurmak için aşağıdaki adımları takip edin:
 
-## Setup In Cloudstream
+1. **Cloudstream** uygulamasını açın.
+2. **Ayarlar (Settings) > Eklentiler (Plugins) > Depo Ekle (Add Repository)** yolunu izleyin.
+3. Depo adı kısmına herhangi bir isim yazın (Örn: `Extra Plugins`).
+4. Depo URL'si kısmına aşağıdaki adresi kopyalayıp yapıştırın:
+   ```text
+   https://raw.githubusercontent.com/onurcvnoglu/onrcvndevcs3/builds/repo.json
+   ```
+5. **Ekle (Add)** butonuna tıklayın.
+6. Depo eklendikten sonra listeden depoyu seçerek **Anime Extra**, **Asya Extra**, **Dizi Extra** ve **Film Extra** eklentilerini tek tıkla kurup kullanmaya başlayabilirsiniz.
 
-### `Onurcvncs3`
+---
 
-1. Install the `.cs3` plugin file in Cloudstream.
-2. Open plugin settings.
-3. Enter your TMDB API key.
-4. Add one or more Stremio addon `manifest.json` URLs.
-5. Save and restart the app.
+## 🛠 Geliştiriciler İçin Derleme (Build)
 
-### `UseStremio`
+Eklentileri yerel olarak derlemek için aşağıdaki Gradle komutlarını kullanabilirsiniz:
 
-1. Install the `.cs3` plugin file in Cloudstream.
-2. Open plugin settings.
-3. Add one or more configured Stremio addon `manifest.json` URLs.
-4. Save and restart the app.
+### Tek Bir Eklentiyi Derleme:
+- **Anime Extra**:
+  ```bash
+  ./gradlew :AnimeExtra:make
+  ```
+- **Asya Extra**:
+  ```bash
+  ./gradlew :AsyaExtra:make
+  ```
+- **Dizi Extra**:
+  ```bash
+  ./gradlew :DiziExtra:make
+  ```
+- **Film Extra**:
+  ```bash
+  ./gradlew :FilmExtra:make
+  ```
 
-Accepted manifest inputs include:
-
-- `https://example-addon.domain/manifest.json`
-- `stremio://example-addon.domain/manifest.json`
-
-## Build
-
-Build a single plugin:
-
-- macOS/Linux: `./gradlew Onurcvncs3:make`
-- macOS/Linux: `./gradlew UseStremio:make`
-- Windows: `.\gradlew.bat Onurcvncs3:make`
-- Windows: `.\gradlew.bat UseStremio:make`
-
-Generate all plugin metadata:
-
+### Tüm Eklentileri Derleme ve Manifesto Güncelleme:
 ```bash
 ./gradlew make makePluginsJson
 ```
 
-For local development, `local.properties` is only needed if Android SDK discovery is not already configured via environment variables.
+Derleme sonrasında `.cs3` uzantılı eklenti dosyaları ve güncel `plugins.json` manifestosu `build` dizininde otomatik olarak oluşturulacaktır.
 
-## Important Notes
+---
 
-- `UseStremio` is the closer Stremio-like experience inside Cloudstream.
-- `Onurcvncs3` still relies on TMDB and adds subtitle fallbacks outside the Stremio ecosystem.
-- Catalogue-only addons can still show metadata but may return `No link found` during playback if they do not expose stream resources.
-
-## Attribution
-
-This repository is based on:
-
-- Cloudstream provider documentation: `https://recloudstream.github.io/csdocs/devs/create-your-own-providers/`
-- Phisher's Cloudstream extensions: `https://github.com/phisher98/cloudstream-extensions-phisher`
+## 📝 Lisans ve Atıf
+Bu eklentiler Cloudstream3 topluluk belgeleri ve resmi olmayan sağlayıcı API standartlarına uygun olarak geliştirilmiştir.
