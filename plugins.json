@@ -1,9 +1,9 @@
 [
     {
-        "fileHash": "sha256-078df4e76fab6e63b3a47d8648726195664b18bd9af0edb36d36c01c377cdcec",
+        "fileHash": "sha256-ec86d9c0047d5b0b7dff54d0f0776c7b31e50a30e970a252e2f99d2d63616702",
         "apiVersion": 1,
         "repositoryUrl": "https://github.com/onurcvnoglu/onrcvndevcs3",
-        "fileSize": 68354,
+        "fileSize": 68745,
         "status": 1,
         "language": "tr",
         "authors": [
@@ -20,10 +20,10 @@
         "name": "AnimeExtra"
     },
     {
-        "fileHash": "sha256-ba27fa062529119ccc226fb1ff1c422c141b7e66fa6250d3c40e7e135776c900",
+        "fileHash": "sha256-81b5408f1f65633d61d174a878affdfcf7fd7cbab542a77993e205d38f28195e",
         "apiVersion": 1,
         "repositoryUrl": "https://github.com/onurcvnoglu/onrcvndevcs3",
-        "fileSize": 45054,
+        "fileSize": 45481,
         "status": 1,
         "language": "tr",
         "authors": [
@@ -41,10 +41,10 @@
         "name": "AsyaExtra"
     },
     {
-        "fileHash": "sha256-d33ae77ddea354a4e236de8bf2463bb3152233c470914920e82f8e98a823df25",
+        "fileHash": "sha256-34893b384a9a53edd37f4dadce292e8d83cdf7cc159393fa20ead62b05403fba",
         "apiVersion": 1,
         "repositoryUrl": "https://github.com/onurcvnoglu/onrcvndevcs3",
-        "fileSize": 153000,
+        "fileSize": 153260,
         "status": 1,
         "language": "tr",
         "authors": [
@@ -61,10 +61,10 @@
         "name": "DiziExtra"
     },
     {
-        "fileHash": "sha256-6a4daf5674b108034839014c293295559b188495bb094abd7ca2141863e9e87d",
+        "fileHash": "sha256-632a2d091d366434e5cc0882cf55adb7715fb567aca9a0c01580c410652fddf8",
         "apiVersion": 1,
         "repositoryUrl": "https://github.com/onurcvnoglu/onrcvndevcs3",
-        "fileSize": 291868,
+        "fileSize": 292204,
         "status": 1,
         "language": "tr",
         "authors": [
