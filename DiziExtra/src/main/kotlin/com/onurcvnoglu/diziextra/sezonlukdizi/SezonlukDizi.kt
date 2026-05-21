@@ -10,15 +10,16 @@ import com.lagradost.cloudstream3.LoadResponse.Companion.addActors
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import com.onurcvnoglu.diziextra.DiziScraper
 
-class SezonlukDizi(val api: MainAPI) : DiziScraper {
+class SezonlukDizi : MainAPI() {
+    private val api: MainAPI get() = this
+
     override var mainUrl     = "https://sezonlukdizi8.com"
     override var name        = "SezonlukDizi"
     override val hasMainPage = true
-    var lang                 = "tr"
-    val hasQuickSearch       = false
-    val supportedTypes       = setOf(TvType.TvSeries)
+    override var lang                 = "tr"
+    override val hasQuickSearch       = false
+    override val supportedTypes       = setOf(TvType.TvSeries)
 
     override val mainPage = mainPageOf(
         "${mainUrl}/diziler.asp?siralama_tipi=id&s="          to "Son Eklenenler",

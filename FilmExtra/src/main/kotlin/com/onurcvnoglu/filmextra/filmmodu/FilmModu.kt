@@ -9,15 +9,17 @@ import com.lagradost.cloudstream3.utils.*
 import com.lagradost.cloudstream3.LoadResponse.Companion.addActors
 import com.lagradost.cloudstream3.LoadResponse.Companion.addTrailer
 
-class FilmModu(val api: MainAPI) {
-    var mainUrl              = "https://www.filmmodu.one"
-    var name                 = "FilmModu"
-    val hasMainPage          = true
-    var lang                 = "tr"
-    val hasQuickSearch       = false
-    val supportedTypes       = setOf(TvType.Movie)
+class FilmModu : MainAPI() {
+    private val api: MainAPI get() = this
 
-    val mainPage = mainPageOf(
+    override var mainUrl              = "https://www.filmmodu.one"
+    override var name                 = "FilmModu"
+    override val hasMainPage          = true
+    override var lang                 = "tr"
+    override val hasQuickSearch       = false
+    override val supportedTypes       = setOf(TvType.Movie)
+
+    override val mainPage = mainPageOf(
         "${mainUrl}/hd-film-kategori/4k-film-izle"          to "4K",
         "${mainUrl}/hd-film-kategori/aile-filmleri"         to "Aile",
         "${mainUrl}/hd-film-kategori/aksiyon"               to "Aksiyon",
@@ -48,7 +50,7 @@ class FilmModu(val api: MainAPI) {
         "${mainUrl}/hd-film-kategori/vahsi-bati-filmleri"   to "Vahşi Batı",
     )
 
-    suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse = with(api) {
+    override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse = with(api) {
         val document = app.get("${request.data}?page=${page}").document
         val home     = document.select("div.movie").mapNotNull { it.toMainPageResult() }
 
@@ -63,15 +65,15 @@ class FilmModu(val api: MainAPI) {
         return api.newMovieSearchResponse(title, href, TvType.Movie) { this.posterUrl = posterUrl }
     }
 
-    suspend fun search(query: String): List<SearchResponse> {
+    override suspend fun search(query: String): List<SearchResponse> {
         val document = app.get("${mainUrl}/film-ara?term=${query}").document
 
         return document.select("div.movie").mapNotNull { it.toMainPageResult() }
     }
 
-    suspend fun quickSearch(query: String): List<SearchResponse> = search(query)
+    override suspend fun quickSearch(query: String): List<SearchResponse> = search(query)
 
-    suspend fun load(url: String): LoadResponse? {
+    override suspend fun load(url: String): LoadResponse? {
         val document = app.get(url).document
 
         val orgTitle    = document.selectFirst("div.titles h1")?.text()?.trim() ?: return null
@@ -94,7 +96,7 @@ class FilmModu(val api: MainAPI) {
         }
     }
 
-    suspend fun loadLinks(data: String, isCasting: Boolean, subtitleCallback: (SubtitleFile) -> Unit, callback: (ExtractorLink) -> Unit): Boolean = with(api) {
+    override suspend fun loadLinks(data: String, isCasting: Boolean, subtitleCallback: (SubtitleFile) -> Unit, callback: (ExtractorLink) -> Unit): Boolean = with(api) {
         Log.d("FLMMD", "data » $data")
         val document = app.get(data).document
 

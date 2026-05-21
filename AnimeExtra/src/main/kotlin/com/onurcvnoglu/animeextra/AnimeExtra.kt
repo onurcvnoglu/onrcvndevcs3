@@ -11,38 +11,21 @@ import com.onurcvnoglu.animeextra.cizgimax.*
 import com.onurcvnoglu.animeextra.tranimaci.*
 import com.onurcvnoglu.animeextra.turkanime.*
 
-interface AnimeScraper {
-    val name: String
-    val mainUrl: String
-    val hasMainPage: Boolean
-    val mainPage: List<MainPageData>
-    suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse?
-    suspend fun search(query: String): List<SearchResponse>?
-    suspend fun quickSearch(query: String): List<SearchResponse>? { return search(query) }
-    suspend fun load(url: String): LoadResponse?
-    suspend fun loadLinks(
-        data: String,
-        isCasting: Boolean,
-        subtitleCallback: (SubtitleFile) -> Unit,
-        callback: (ExtractorLink) -> Unit
-    ): Boolean
-}
-
 class AnimeExtra : MainAPI() {
     override var name = "Anime Extra"
-    override var mainUrl = "https://turkanime.co"
+    override var mainUrl = "https://animecix.tv"
     override val supportedTypes = setOf(TvType.Anime, TvType.AnimeMovie)
     override var lang = "tr"
     override val hasMainPage = true
     override val hasQuickSearch = true
 
-    private val providers: List<AnimeScraper> = listOf(
-        AnimeciX(this),
-        AsyaAnimeleri(this),
-        TRanimaci(this)
+    private val providers: List<MainAPI> = listOf(
+        AnimeciX(),
+        AsyaAnimeleri(),
+        TRanimaci()
     )
 
-    private fun getProviderForUrl(url: String): AnimeScraper? {
+    private fun getProviderForUrl(url: String): MainAPI? {
         val cleanUrl = url.lowercase()
         return providers.find { provider ->
             val cleanMain = provider.mainUrl.lowercase().replace("https://", "").replace("http://", "").replace("www.", "")

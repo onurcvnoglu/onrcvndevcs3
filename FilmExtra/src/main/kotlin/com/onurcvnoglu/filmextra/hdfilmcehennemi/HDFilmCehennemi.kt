@@ -40,17 +40,19 @@ import okhttp3.Response
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
 
-class HDFilmCehennemi(val api: MainAPI) {
-    var mainUrl              = "https://www.hdfilmcehennemi.nl"
-    var name                 = "HDFilmCehennemi"
-    val hasMainPage          = true
-    var lang                 = "tr"
-    val hasQuickSearch       = true
-    val supportedTypes       = setOf(TvType.Movie, TvType.TvSeries)
+class HDFilmCehennemi : MainAPI() {
+    private val api: MainAPI get() = this
 
-    var sequentialMainPage = true
-    var sequentialMainPageDelay       = 150L
-    var sequentialMainPageScrollDelay = 150L
+    override var mainUrl              = "https://www.hdfilmcehennemi.nl"
+    override var name                 = "HDFilmCehennemi"
+    override val hasMainPage          = true
+    override var lang                 = "tr"
+    override val hasQuickSearch       = true
+    override val supportedTypes       = setOf(TvType.Movie, TvType.TvSeries)
+
+    override var sequentialMainPage = true
+    override var sequentialMainPageDelay       = 150L
+    override var sequentialMainPageScrollDelay = 150L
 
     // ! CloudFlare v2
     private val cloudflareKiller by lazy { CloudflareKiller() }
@@ -70,7 +72,7 @@ class HDFilmCehennemi(val api: MainAPI) {
         }
     }
 
-    val mainPage = mainPageOf(
+    override val mainPage = mainPageOf(
         "${mainUrl}/load/page/sayfano/home/"                                       to "Yeni Eklenen Filmler",
         "${mainUrl}/load/page/sayfano/home-series/"                                to "Yeni Eklenen Diziler",
         "${mainUrl}/load/page/sayfano/categories/tavsiye-filmler-izle3/"           to "Tavsiye Filmler",
@@ -79,7 +81,7 @@ class HDFilmCehennemi(val api: MainAPI) {
         "${mainUrl}/load/page/sayfano/mostLiked/"                                  to "En Çok Beğenilenler",
     )
 
-    suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse = with(api) {
+    override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse = with(api) {
         val objectMapper = ObjectMapper().registerModule(KotlinModule.Builder().build())
         objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
         val url = request.data.replace("sayfano", page.toString())
@@ -109,9 +111,9 @@ class HDFilmCehennemi(val api: MainAPI) {
         return api.newMovieSearchResponse(title, href, TvType.Movie) { this.posterUrl = posterUrl }
     }
 
-    suspend fun quickSearch(query: String): List<SearchResponse> = search(query)
+    override suspend fun quickSearch(query: String): List<SearchResponse> = search(query)
 
-    suspend fun search(query: String): List<SearchResponse> {
+    override suspend fun search(query: String): List<SearchResponse> {
         val response      = app.get(
             "${mainUrl}/search?q=${query}",
             headers = mapOf("X-Requested-With" to "fetch")
@@ -133,7 +135,7 @@ class HDFilmCehennemi(val api: MainAPI) {
         return searchResults
     }
 
-    suspend fun load(url: String): LoadResponse? {
+    override suspend fun load(url: String): LoadResponse? {
         val document = app.get(url, interceptor = interceptor).document
 
         val title       = document.selectFirst("h1.section-title")?.text()?.substringBefore(" izle") ?: return null
@@ -304,7 +306,7 @@ class HDFilmCehennemi(val api: MainAPI) {
         )
     }
 
-    suspend fun loadLinks(
+    override suspend fun loadLinks(
         data: String,
         isCasting: Boolean,
         subtitleCallback: (SubtitleFile) -> Unit,

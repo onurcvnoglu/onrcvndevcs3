@@ -6,7 +6,6 @@ import android.util.Log
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*
 import org.jsoup.nodes.Element
-import com.onurcvnoglu.diziextra.DiziScraper
 import com.lagradost.cloudstream3.newHomePageResponse
 import com.lagradost.cloudstream3.newTvSeriesSearchResponse
 import com.lagradost.cloudstream3.newMovieSearchResponse
@@ -15,16 +14,18 @@ import com.lagradost.cloudstream3.newMovieLoadResponse
 import com.lagradost.cloudstream3.newEpisode
 import com.lagradost.cloudstream3.utils.newExtractorLink
 
-class DiziPalOriginal(val api: MainAPI) : DiziScraper {
+class DiziPalOriginal : MainAPI() {
+    private val api: MainAPI get() = this
+
     override var mainUrl              = "https://dizipal2072.com"
     override var name                 = "DiziPalOriginal"
     override val hasMainPage          = true
-    var lang                 = "tr"
-    val hasQuickSearch       = true
-    val supportedTypes       = setOf(TvType.TvSeries, TvType.Movie)
+    override var lang                 = "tr"
+    override val hasQuickSearch       = true
+    override val supportedTypes       = setOf(TvType.TvSeries, TvType.Movie)
 
     // ! CloudFlare bypass
-    var sequentialMainPage = true        // * https://recloudstream.github.io/dokka/-cloudstream/com.lagradost.cloudstream3/-main-a-p-i/index.html#-2049735995%2FProperties%2F101969414
+    override var sequentialMainPage = true        // * https://recloudstream.github.io/dokka/-cloudstream/com.lagradost.cloudstream3/-main-a-p-i/index.html#-2049735995%2FProperties%2F101969414
     // var sequentialMainPageDelay       = 250L // ? 0.25 saniye
     // var sequentialMainPageScrollDelay = 250L // ? 0.25 saniye
 

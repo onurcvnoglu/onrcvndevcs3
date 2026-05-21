@@ -8,15 +8,15 @@ import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*
 import kotlin.random.Random
 
-import com.onurcvnoglu.asyaextra.AsyaScraper
+class KoreanTurk : MainAPI() {
+    private val api: MainAPI get() = this
 
-class KoreanTurk(val api: MainAPI) : AsyaScraper {
     override var mainUrl              = "https://www.koreanturk.net"
     override var name                 = "KoreanTurk"
     override val hasMainPage          = true
-    var lang                 = "tr"
-    val hasQuickSearch       = false
-    val supportedTypes       = setOf(TvType.AsianDrama)
+    override var lang                 = "tr"
+    override val hasQuickSearch       = false
+    override val supportedTypes       = setOf(TvType.AsianDrama)
 
     override val mainPage = mainPageOf(
         "${mainUrl}/bolumler/page/"       to "Son Eklenenler",

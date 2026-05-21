@@ -13,19 +13,19 @@ import okhttp3.Interceptor
 import okhttp3.Response
 import org.jsoup.Jsoup
 
-import com.onurcvnoglu.asyaextra.AsyaScraper
+class DiziKorea : MainAPI() {
+    private val api: MainAPI get() = this
 
-class DiziKorea(val api: MainAPI) : AsyaScraper {
     override var mainUrl              = "https://dizikorea3.com"
     override var name                 = "DiziKorea"
     override val hasMainPage          = true
-    var lang                 = "tr"
-    val hasQuickSearch       = true
-    val supportedTypes       = setOf(TvType.AsianDrama)
+    override var lang                 = "tr"
+    override val hasQuickSearch       = true
+    override val supportedTypes       = setOf(TvType.AsianDrama)
 
-    var sequentialMainPage = true        // * https://recloudstream.github.io/dokka/-cloudstream/com.lagradost.cloudstream3/-main-a-p-i/index.html#-2049735995%2FProperties%2F101969414
-    var sequentialMainPageDelay       = 150L  // ? 0.15 saniye
-    var sequentialMainPageScrollDelay = 150L  // ? 0.15 saniye
+    override var sequentialMainPage = true        // * https://recloudstream.github.io/dokka/-cloudstream/com.lagradost.cloudstream3/-main-a-p-i/index.html#-2049735995%2FProperties%2F101969414
+    override var sequentialMainPageDelay       = 150L  // ? 0.15 saniye
+    override var sequentialMainPageScrollDelay = 150L  // ? 0.15 saniye
 
     // ! CloudFlare v2
     private val cloudflareKiller by lazy { CloudflareKiller() }

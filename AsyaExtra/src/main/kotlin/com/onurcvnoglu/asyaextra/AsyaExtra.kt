@@ -9,38 +9,21 @@ import com.onurcvnoglu.asyaextra.dizikorea.*
 import com.onurcvnoglu.asyaextra.koreanturk.*
 import com.onurcvnoglu.asyaextra.trasyalog.*
 
-interface AsyaScraper {
-    val name: String
-    val mainUrl: String
-    val hasMainPage: Boolean
-    val mainPage: List<MainPageData>
-    suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse?
-    suspend fun search(query: String): List<SearchResponse>?
-    suspend fun quickSearch(query: String): List<SearchResponse>? { return search(query) }
-    suspend fun load(url: String): LoadResponse?
-    suspend fun loadLinks(
-        data: String,
-        isCasting: Boolean,
-        subtitleCallback: (SubtitleFile) -> Unit,
-        callback: (ExtractorLink) -> Unit
-    ): Boolean
-}
-
 class AsyaExtra : MainAPI() {
     override var name = "Asya Extra"
-    override var mainUrl = "https://koreanturk.com"
+    override var mainUrl = "https://dizikorea3.com"
     override val supportedTypes = setOf(TvType.AsianDrama, TvType.TvSeries, TvType.Movie)
     override var lang = "tr"
     override val hasMainPage = true
     override val hasQuickSearch = true
 
-    private val providers: List<AsyaScraper> = listOf(
-        DiziKorea(this),
-        KoreanTurk(this),
-        TRasyalog(this)
+    private val providers: List<MainAPI> = listOf(
+        DiziKorea(),
+        KoreanTurk(),
+        TRasyalog()
     )
 
-    private fun getProviderForUrl(url: String): AsyaScraper? {
+    private fun getProviderForUrl(url: String): MainAPI? {
         val cleanUrl = url.lowercase()
         return providers.find { provider ->
             val cleanMain = provider.mainUrl.lowercase().replace("https://", "").replace("http://", "").replace("www.", "")

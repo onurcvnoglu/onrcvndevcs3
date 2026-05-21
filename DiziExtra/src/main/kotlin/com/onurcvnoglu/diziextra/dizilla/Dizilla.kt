@@ -39,20 +39,19 @@ import javax.crypto.Cipher
 import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.SecretKeySpec
 
+class Dizilla : MainAPI() {
+    private val api: MainAPI get() = this
 
-import com.onurcvnoglu.diziextra.DiziScraper
-
-class Dizilla(val api: MainAPI) : DiziScraper {
     override var mainUrl = "https://dizilla.to"
     override var name = "Dizilla"
     override val hasMainPage = true
-    var lang = "tr"
-    val hasQuickSearch = true
-    val supportedTypes = setOf(TvType.TvSeries)
+    override var lang = "tr"
+    override val hasQuickSearch = true
+    override val supportedTypes = setOf(TvType.TvSeries)
 
-    var sequentialMainPage = true        // * https://recloudstream.github.io/dokka/-cloudstream/com.lagradost.cloudstream3/-main-a-p-i/index.html#-2049735995%2FProperties%2F101969414
-    var sequentialMainPageDelay       = 150L  // ? 0.15 saniye
-    var sequentialMainPageScrollDelay = 150L  // ? 0.15 saniye
+    override var sequentialMainPage = true        // * https://recloudstream.github.io/dokka/-cloudstream/com.lagradost.cloudstream3/-main-a-p-i/index.html#-2049735995%2FProperties%2F101969414
+    override var sequentialMainPageDelay       = 150L  // ? 0.15 saniye
+    override var sequentialMainPageScrollDelay = 150L  // ? 0.15 saniye
 
     // ! CloudFlare v2
     private val cloudflareKiller by lazy { CloudflareKiller() }
@@ -74,7 +73,7 @@ class Dizilla(val api: MainAPI) : DiziScraper {
         }
     }
 	
-    val supportedSyncNames = setOf(
+	override val supportedSyncNames = setOf(
         SyncIdName.Simkl
     )
 

@@ -5,20 +5,19 @@ import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*
 import org.jsoup.nodes.Element
 
+class TRasyalog : MainAPI() {
+    private val api: MainAPI get() = this
 
-import com.onurcvnoglu.asyaextra.AsyaScraper
-
-class TRasyalog(val api: MainAPI) : AsyaScraper {
     override var mainUrl        = "https://asyalog.co"
     override var name           = "AsyaLog"
     override val hasMainPage    = true
-    var lang           = "tr"
-    val hasQuickSearch = false
-    val supportedTypes = setOf(TvType.TvSeries)
+    override var lang           = "tr"
+    override val hasQuickSearch = false
+    override val supportedTypes = setOf(TvType.TvSeries)
 
-    var sequentialMainPage = true
-    var sequentialMainPageDelay       = 500L
-    var sequentialMainPageScrollDelay = 500L
+    override var sequentialMainPage = true
+    override var sequentialMainPageDelay       = 500L
+    override var sequentialMainPageScrollDelay = 500L
 
     override val mainPage = mainPageOf(
         "${mainUrl}/diziler/ulke/guney-kore/" to "Kore Dizileri",

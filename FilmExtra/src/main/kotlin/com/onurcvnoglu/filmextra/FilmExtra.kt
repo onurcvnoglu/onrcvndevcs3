@@ -17,38 +17,31 @@ class FilmExtra : MainAPI() {
     override val hasMainPage = true
     override val hasQuickSearch = true
 
-    // Sağlayıcı nesnelerini Scraper helper olarak api referansıyla başlatıyoruz
-    private val providers = listOf(
-        FilmMakinesi(this),
-        FilmModu(this),
-        HDFilmCehennemi(this)
+    // Sağlayıcılar kendi MainAPI bağlamıyla çalıştığı için relative URL'ler doğru domaine çözülür.
+    private val providers = listOf<MainAPI>(
+        FilmMakinesi(),
+        FilmModu(),
+        HDFilmCehennemi()
     )
 
-    // compile-time casting için generic bir bulma
-    private fun getAnyProviderForUrl(url: String): Any? {
+    private fun getProviderForUrl(url: String): MainAPI? {
         val cleanUrl = url.lowercase()
-        if (cleanUrl.contains("filmmakinesi")) return providers[0]
-        if (cleanUrl.contains("filmmodu")) return providers[1]
-        if (cleanUrl.contains("hdfilmcehennemi") || cleanUrl.contains("hdhd")) return providers[2]
-        return providers.firstOrNull()
+        return providers.find { provider ->
+            val cleanMain = provider.mainUrl.lowercase().replace("https://", "").replace("http://", "").replace("www.", "")
+            val domain = cleanMain.split("/").firstOrNull() ?: ""
+            if (domain.isNotEmpty()) {
+                val cleanDomain = domain.replace(Regex("\\.[a-z]+$"), "")
+                cleanUrl.contains(cleanDomain)
+            } else {
+                false
+            }
+        } ?: providers.firstOrNull()
     }
 
     override val mainPage = providers.flatMap { provider ->
         // Her sağlayıcının mainPage listesini benzersiz bir ön ek ile birleştiriyoruz
-        val name = when (provider) {
-            is FilmMakinesi -> provider.name
-            is FilmModu -> provider.name
-            is HDFilmCehennemi -> provider.name
-            else -> ""
-        }
-        val pages = when (provider) {
-            is FilmMakinesi -> provider.mainPage
-            is FilmModu -> provider.mainPage
-            is HDFilmCehennemi -> provider.mainPage
-            else -> emptyList()
-        }
-        pages.map { page ->
-            MainPageData("$name|${page.data}", "$name - ${page.name}")
+        provider.mainPage.map { page ->
+            MainPageData("${provider.name}|${page.data}", "${provider.name} - ${page.name}")
         }
     }
 
@@ -58,26 +51,13 @@ class FilmExtra : MainAPI() {
         val providerName = parts[0]
         val originalData = if (parts.size > 1) parts[1] else ""
         
-        val provider = providers.find { 
-            val name = when (it) {
-                is FilmMakinesi -> it.name
-                is FilmModu -> it.name
-                is HDFilmCehennemi -> it.name
-                else -> ""
-            }
-            name == providerName
-        } ?: return null
+        val provider = providers.find { it.name == providerName } ?: return null
         
         val cleanName = request.name.substringAfter(" - ")
         val newRequest = MainPageRequest(cleanName, originalData, request.horizontalImages)
         
         return try {
-            val response = when (provider) {
-                is FilmMakinesi -> provider.getMainPage(page, newRequest)
-                is FilmModu -> provider.getMainPage(page, newRequest)
-                is HDFilmCehennemi -> provider.getMainPage(page, newRequest)
-                else -> null
-            }
+            val response = provider.getMainPage(page, newRequest)
             if (response != null) {
                 if (response.items.size > 1) {
                     val allResults = response.items.flatMap { it.list }
@@ -108,12 +88,7 @@ class FilmExtra : MainAPI() {
         providers.map { provider ->
             async {
                 try {
-                    when (provider) {
-                        is FilmMakinesi -> provider.search(query)
-                        is FilmModu -> provider.search(query)
-                        is HDFilmCehennemi -> provider.search(query)
-                        else -> emptyList()
-                    }
+                    provider.search(query)
                 } catch (e: Throwable) {
                     null
                 }
@@ -124,13 +99,8 @@ class FilmExtra : MainAPI() {
     override suspend fun quickSearch(query: String): List<SearchResponse>? = search(query)
 
     override suspend fun load(url: String): LoadResponse? {
-        val provider = getAnyProviderForUrl(url) ?: throw ErrorLoadingException("Sağlayıcı bulunamadı")
-        return when (provider) {
-            is FilmMakinesi -> provider.load(url)
-            is FilmModu -> provider.load(url)
-            is HDFilmCehennemi -> provider.load(url)
-            else -> null
-        }
+        val provider = getProviderForUrl(url) ?: throw ErrorLoadingException("Sağlayıcı bulunamadı")
+        return provider.load(url)
     }
 
     override suspend fun loadLinks(
@@ -139,12 +109,7 @@ class FilmExtra : MainAPI() {
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ): Boolean {
-        val provider = getAnyProviderForUrl(data) ?: return false
-        return when (provider) {
-            is FilmMakinesi -> provider.loadLinks(data, isCasting, subtitleCallback, callback)
-            is FilmModu -> provider.loadLinks(data, isCasting, subtitleCallback, callback)
-            is HDFilmCehennemi -> provider.loadLinks(data, isCasting, subtitleCallback, callback)
-            else -> false
-        }
+        val provider = getProviderForUrl(data) ?: return false
+        return provider.loadLinks(data, isCasting, subtitleCallback, callback)
     }
 }

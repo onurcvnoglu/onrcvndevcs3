@@ -7,19 +7,20 @@ import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*
 import com.lagradost.cloudstream3.LoadResponse.Companion.addActors
 import com.lagradost.cloudstream3.LoadResponse.Companion.addTrailer
-import com.onurcvnoglu.animeextra.AnimeScraper
 
-class AnimeciX(val api: MainAPI) : AnimeScraper {
+class AnimeciX : MainAPI() {
+    private val api: MainAPI get() = this
+
     override var mainUrl              = "https://animecix.tv"
     override var name                 = "AnimeciX"
     override val hasMainPage          = true
-    var lang                 = "tr"
-    val hasQuickSearch       = false
-    val supportedTypes       = setOf(TvType.Anime)
+    override var lang                 = "tr"
+    override val hasQuickSearch       = false
+    override val supportedTypes       = setOf(TvType.Anime)
 
-    var sequentialMainPage = true        // * https://recloudstream.github.io/dokka/-cloudstream/com.lagradost.cloudstream3/-main-a-p-i/index.html#-2049735995%2FProperties%2F101969414
-    var sequentialMainPageDelay       = 200L  // ? 0.20 saniye
-    var sequentialMainPageScrollDelay = 200L  // ? 0.20 saniye
+    override var sequentialMainPage = true        // * https://recloudstream.github.io/dokka/-cloudstream/com.lagradost.cloudstream3/-main-a-p-i/index.html#-2049735995%2FProperties%2F101969414
+    override var sequentialMainPageDelay       = 200L  // ? 0.20 saniye
+    override var sequentialMainPageScrollDelay = 200L  // ? 0.20 saniye
 
     override val mainPage = mainPageOf(
         "${mainUrl}/secure/last-episodes"                          to "Son Eklenen Bölümler",

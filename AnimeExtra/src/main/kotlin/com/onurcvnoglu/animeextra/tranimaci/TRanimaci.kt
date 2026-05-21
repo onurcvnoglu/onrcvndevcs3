@@ -9,19 +9,20 @@ import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*
 import org.json.*
 import org.jsoup.Jsoup
-import com.onurcvnoglu.animeextra.AnimeScraper
 
-class TRanimaci(val api: MainAPI) : AnimeScraper {
+class TRanimaci : MainAPI() {
+    private val api: MainAPI get() = this
+
     override var mainUrl              = "https://tranimaci.com"
     override var name                 = "TrAnimeci"
     override val hasMainPage          = true
-    var lang                 = "tr"
-    val hasQuickSearch       = false
-    val supportedTypes       = setOf(TvType.Anime)
+    override var lang                 = "tr"
+    override val hasQuickSearch       = false
+    override val supportedTypes       = setOf(TvType.Anime)
 
-    var sequentialMainPage = true        // * https://recloudstream.github.io/dokka/library/com.lagradost.cloudstream3/-main-a-p-i/index.html#-2049735995%2FProperties%2F101969414
-    var sequentialMainPageDelay       = 500L  // ? 0.5 saniye
-    var sequentialMainPageScrollDelay = 500L  // ? 0.5 saniye
+    override var sequentialMainPage = true        // * https://recloudstream.github.io/dokka/library/com.lagradost.cloudstream3/-main-a-p-i/index.html#-2049735995%2FProperties%2F101969414
+    override var sequentialMainPageDelay       = 500L  // ? 0.5 saniye
+    override var sequentialMainPageScrollDelay = 500L  // ? 0.5 saniye
 
     override val mainPage = mainPageOf(
         "${mainUrl}/category/action"                                   to "Aksiyon",

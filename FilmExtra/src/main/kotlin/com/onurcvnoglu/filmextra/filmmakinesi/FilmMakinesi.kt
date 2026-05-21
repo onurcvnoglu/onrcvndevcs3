@@ -10,20 +10,22 @@ import com.lagradost.cloudstream3.utils.*
 import com.lagradost.cloudstream3.LoadResponse.Companion.addActors
 import com.lagradost.cloudstream3.LoadResponse.Companion.addTrailer
 
-class FilmMakinesi(val api: MainAPI) {
-    var mainUrl              = "https://filmmakinesi.to"
-    var name                 = "FilmMakinesi"
-    val hasMainPage          = true
-    var lang                 = "tr"
-    val hasQuickSearch       = false
-    val supportedTypes       = setOf(TvType.Movie)
+class FilmMakinesi : MainAPI() {
+    private val api: MainAPI get() = this
+
+    override var mainUrl              = "https://filmmakinesi.to"
+    override var name                 = "FilmMakinesi"
+    override val hasMainPage          = true
+    override var lang                 = "tr"
+    override val hasQuickSearch       = false
+    override val supportedTypes       = setOf(TvType.Movie)
 
     // ! CloudFlare bypass
-    var sequentialMainPage            = true
-    var sequentialMainPageDelay       = 50L
-    var sequentialMainPageScrollDelay = 50L
+    override var sequentialMainPage            = true
+    override var sequentialMainPageDelay       = 50L
+    override var sequentialMainPageScrollDelay = 50L
 
-    val mainPage = mainPageOf(
+    override val mainPage = mainPageOf(
         "${mainUrl}/filmler-1/sayfa/"                                to "Son Filmler",
         "${mainUrl}/film-izle/olmeden-izlenmesi-gerekenler-fm1/sayfa/" to "Ölmeden İzle",
         "${mainUrl}/tur/aksiyon-fm1/film/sayfa/"                       to "Aksiyon",
@@ -37,7 +39,7 @@ class FilmMakinesi(val api: MainAPI) {
         "${mainUrl}/tur/korku-fm1/film/sayfa/"                         to "Korku",
     )
 
-    suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse = with(api) {
+    override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse = with(api) {
         val cleanedUrl = request.data.removeSuffix("/")
         val url = if (page > 1) {
             "$cleanedUrl/$page"
@@ -78,15 +80,15 @@ class FilmMakinesi(val api: MainAPI) {
         return api.newMovieSearchResponse(title, href, TvType.Movie) { this.posterUrl = posterUrl }
     }
 
-    suspend fun search(query: String): List<SearchResponse> {
+    override suspend fun search(query: String): List<SearchResponse> {
         val document = app.get("${mainUrl}/arama/?s=${query}").document
 
         return document.select("div.film-list div.item-relative").mapNotNull { it.toSearchResult() }
     }
 
-    suspend fun quickSearch(query: String): List<SearchResponse> = search(query)
+    override suspend fun quickSearch(query: String): List<SearchResponse> = search(query)
 
-    suspend fun load(url: String): LoadResponse? = with(api) {
+    override suspend fun load(url: String): LoadResponse? = with(api) {
         val document = app.get(url).document
 
         val title           = document.selectFirst("h1")?.text()?.trim() ?: return null
@@ -123,7 +125,7 @@ class FilmMakinesi(val api: MainAPI) {
         }
     }
 
-    suspend fun loadLinks(data: String, isCasting: Boolean, subtitleCallback: (SubtitleFile) -> Unit, callback: (ExtractorLink) -> Unit): Boolean {
+    override suspend fun loadLinks(data: String, isCasting: Boolean, subtitleCallback: (SubtitleFile) -> Unit, callback: (ExtractorLink) -> Unit): Boolean {
         Log.d("FLMM", "data » $data")
         val document      = app.get(data).document
         val iframeSrc = document.selectFirst("iframe")?.attr("data-src") ?: ""

@@ -15,38 +15,21 @@ import com.onurcvnoglu.diziextra.dizilla.*
 import com.onurcvnoglu.diziextra.sezonlukdizi.*
 import com.onurcvnoglu.diziextra.tlctr.*
 
-interface DiziScraper {
-    val mainUrl: String
-    val name: String
-    val hasMainPage: Boolean
-    val mainPage: List<MainPageData>
-    suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse?
-    suspend fun search(query: String): List<SearchResponse>?
-    suspend fun quickSearch(query: String): List<SearchResponse>?
-    suspend fun load(url: String): LoadResponse?
-    suspend fun loadLinks(
-        data: String,
-        isCasting: Boolean,
-        subtitleCallback: (SubtitleFile) -> Unit,
-        callback: (ExtractorLink) -> Unit
-    ): Boolean
-}
-
 class DiziExtra : MainAPI() {
     override var name = "Dizi Extra"
-    override var mainUrl = "https://dizilla.com"
+    override var mainUrl = "https://dizipal2072.com"
     override val supportedTypes = setOf(TvType.TvSeries, TvType.Movie)
     override var lang = "tr"
     override val hasMainPage = true
     override val hasQuickSearch = true
 
-    private val providers = listOf<DiziScraper>(
-        DiziPalOriginal(this),
-        Dizilla(this),
-        SezonlukDizi(this)
+    private val providers = listOf<MainAPI>(
+        DiziPalOriginal(),
+        Dizilla(),
+        SezonlukDizi()
     )
 
-    private fun getProviderForUrl(url: String): DiziScraper? {
+    private fun getProviderForUrl(url: String): MainAPI? {
         val cleanUrl = url.lowercase()
         return providers.find { provider ->
             val cleanMain = provider.mainUrl.lowercase().replace("https://", "").replace("http://", "").replace("www.", "")

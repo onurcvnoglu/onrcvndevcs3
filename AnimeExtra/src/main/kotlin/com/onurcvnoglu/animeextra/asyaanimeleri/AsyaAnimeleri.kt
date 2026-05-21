@@ -7,19 +7,20 @@ import android.util.Log
 import org.jsoup.nodes.Element
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*
-import com.onurcvnoglu.animeextra.AnimeScraper
 
-class AsyaAnimeleri(val api: MainAPI) : AnimeScraper {
+class AsyaAnimeleri : MainAPI() {
+    private val api: MainAPI get() = this
+
     override var mainUrl              = "https://asyaanimeleri.top"
     override var name                 = "AsyaAnimeleri"
     override val hasMainPage          = true
-    var lang                 = "tr"
-    val hasQuickSearch       = false
-    val supportedTypes       = setOf(TvType.Anime)
+    override var lang                 = "tr"
+    override val hasQuickSearch       = false
+    override val supportedTypes       = setOf(TvType.Anime)
 
-    var sequentialMainPage            = true
-    var sequentialMainPageDelay        = 250L
-    var sequentialMainPageScrollDelay  = 250L
+    override var sequentialMainPage            = true
+    override var sequentialMainPageDelay        = 250L
+    override var sequentialMainPageScrollDelay  = 250L
 
     override val mainPage = mainPageOf(
         "${mainUrl}/"                                  to "Son Eklenenler",
