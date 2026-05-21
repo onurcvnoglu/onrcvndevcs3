@@ -85,7 +85,15 @@ class AnimeExtra : MainAPI() {
             }
         } catch (e: Throwable) {
             e.printStackTrace()
-            null
+            // Hata mesajını ana sayfada liste elemanı olarak göstererek debug yapıyoruz
+            val errorMsg = "Hata (${providerName}): ${e.message ?: e.toString()}"
+            val debugList = listOf(
+                newMovieSearchResponse(errorMsg, "https://error.com", TvType.Movie) {}
+            )
+            newHomePageResponse(
+                listOf(HomePageList(cleanName, debugList, isHorizontalImages = true)),
+                false
+            )
         }
     }
 
