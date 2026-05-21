@@ -17,19 +17,13 @@ import com.onurcvnoglu.diziextra.tlctr.*
 @CloudstreamPlugin
 class DiziExtraPlugin: Plugin() {
     override fun load(context: Context) {
-        registerMainAPI(DDizi())
-        registerMainAPI(DiziBox())
-        registerMainAPI(DiziMom())
+        registerMainAPI(DiziExtra())
         registerExtractorAPI(HDMomPlayer())
         registerExtractorAPI(HDPlayerSystem())
         registerExtractorAPI(VideoSeyred())
         registerExtractorAPI(PeaceMakerst())
         registerExtractorAPI(HDStreamAble())
-        registerMainAPI(DiziPal())
         registerExtractorAPI(DizipalPlayer())
-        registerMainAPI(DiziPalOriginal())
-        registerMainAPI(DiziYou())
-        registerMainAPI(Dizilla())
         registerExtractorAPI(ContentX())
         registerExtractorAPI(Hotlinger())
         registerExtractorAPI(FourCX())
@@ -38,7 +32,5 @@ class DiziExtraPlugin: Plugin() {
         registerExtractorAPI(FourPichive())
         registerExtractorAPI(Pichive())
         registerExtractorAPI(SNplayer())
-        registerMainAPI(SezonlukDizi())
-        registerMainAPI(Tlctr())
     }
 }

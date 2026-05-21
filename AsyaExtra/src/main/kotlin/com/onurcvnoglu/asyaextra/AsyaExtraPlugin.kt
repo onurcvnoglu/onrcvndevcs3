@@ -11,10 +11,8 @@ import com.onurcvnoglu.asyaextra.trasyalog.*
 @CloudstreamPlugin
 class AsyaExtraPlugin: Plugin() {
     override fun load(context: Context) {
-        registerMainAPI(DiziKorea())
+        registerMainAPI(AsyaExtra())
         registerExtractorAPI(VideoSeyred())
         registerExtractorAPI(PlayerKorea())
-        registerMainAPI(KoreanTurk())
-        registerMainAPI(TRasyalog())
     }
 }

@@ -13,15 +13,11 @@ import com.onurcvnoglu.animeextra.turkanime.*
 @CloudstreamPlugin
 class AnimeExtraPlugin: Plugin() {
     override fun load(context: Context) {
-        registerMainAPI(AnimeciX())
+        registerMainAPI(AnimeExtra())
         registerExtractorAPI(TauVideo())
-        registerMainAPI(AsyaAnimeleri())
-        registerMainAPI(CizgiMax())
         registerExtractorAPI(SibNet())
         registerExtractorAPI(CizgiDuo())
         registerExtractorAPI(CizgiPass())
         registerExtractorAPI(Drive())
-        registerMainAPI(TRanimaci())
-        registerMainAPI(TurkAnime())
     }
 }
