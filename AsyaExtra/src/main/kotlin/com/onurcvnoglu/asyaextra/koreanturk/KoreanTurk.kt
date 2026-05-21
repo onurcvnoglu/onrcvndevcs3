@@ -8,13 +8,15 @@ import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*
 import kotlin.random.Random
 
-class KoreanTurk : MainAPI() {
+import com.onurcvnoglu.asyaextra.AsyaScraper
+
+class KoreanTurk(val api: MainAPI) : AsyaScraper {
     override var mainUrl              = "https://www.koreanturk.net"
     override var name                 = "KoreanTurk"
     override val hasMainPage          = true
-    override var lang                 = "tr"
-    override val hasQuickSearch       = false
-    override val supportedTypes       = setOf(TvType.AsianDrama)
+    var lang                 = "tr"
+    val hasQuickSearch       = false
+    val supportedTypes       = setOf(TvType.AsianDrama)
 
     override val mainPage = mainPageOf(
         "${mainUrl}/bolumler/page/"       to "Son Eklenenler",
@@ -40,7 +42,7 @@ class KoreanTurk : MainAPI() {
         "${mainUrl}/Konu-Tarih"           to "Tarih",
     )
 
-    override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
+    override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse = with(api) {
         if (request.data.contains("Konu-")) {
             val document = app.get(request.data).document
             val home     = document.selectXpath("//img[contains(@onload, 'NcodeImageResizer')]")
@@ -48,7 +50,7 @@ class KoreanTurk : MainAPI() {
                 .take(12)
                 .mapNotNull { it.toKonuResult() }
 
-            return newHomePageResponse(
+            return@with newHomePageResponse(
                 list = HomePageList(
                     name = request.name,
                     list = home,
@@ -60,7 +62,7 @@ class KoreanTurk : MainAPI() {
             val document = app.get("${request.data}${page}").document
             val home     = document.select("div.standartbox").mapNotNull { it.toSearchResult() }
 
-            return newHomePageResponse(request.name, home)
+            return@with newHomePageResponse(request.name, home)
         }
     }
 
@@ -69,30 +71,30 @@ class KoreanTurk : MainAPI() {
         return regex.replace(url, "")
     }
 
-    private fun Element.toSearchResult(): SearchResponse? {
-        val dizi      = this.selectFirst("h2 span")?.text()?.trim() ?: return null
-        val bolum     = this.selectFirst("h2")?.ownText()?.substringBefore(".Bölüm")?.trim()
+    private fun Element.toSearchResult(): SearchResponse? = with(api) {
+        val dizi      = this@toSearchResult.selectFirst("h2 span")?.text()?.trim() ?: return null
+        val bolum     = this@toSearchResult.selectFirst("h2")?.ownText()?.substringBefore(".Bölüm")?.trim()
         val title     = "$dizi | $bolum"
 
-        var href      = fixUrlNull(this.selectFirst("a")?.attr("href")) ?: return null
+        var href      = fixUrlNull(this@toSearchResult.selectFirst("a")?.attr("href")) ?: return null
         if (href.contains("izle.html")) {
             href = removeEpisodePart(href)
         }
 
-        val posterUrl = fixUrlNull(this.selectFirst("div.resimcik img")?.attr("src"))
+        val posterUrl = fixUrlNull(this@toSearchResult.selectFirst("div.resimcik img")?.attr("src"))
 
         return newTvSeriesSearchResponse(title, href, TvType.AsianDrama) { this.posterUrl = posterUrl }
     }
 
-    private fun Element.toKonuResult(): SearchResponse? {
-        val title     = this.selectXpath("preceding-sibling::a[1]").text().trim()
-        val href      = fixUrlNull(this.selectXpath("preceding-sibling::a[1]").attr("href")) ?: return null
-        val posterUrl = fixUrlNull(this.attr("src"))
+    private fun Element.toKonuResult(): SearchResponse? = with(api) {
+        val title     = this@toKonuResult.selectXpath("preceding-sibling::a[1]").text().trim()
+        val href      = fixUrlNull(this@toKonuResult.selectXpath("preceding-sibling::a[1]").attr("href")) ?: return null
+        val posterUrl = fixUrlNull(this@toKonuResult.attr("src"))
 
         return newTvSeriesSearchResponse(title, href, TvType.AsianDrama) { this.posterUrl = posterUrl }
     }
 
-    override suspend fun search(query: String): List<SearchResponse> {
+    override suspend fun search(query: String): List<SearchResponse> = with(api) {
         val document = app.get("${mainUrl}/").document
 
         val searchResults = document.select(".cat-item").mapNotNull {
@@ -111,12 +113,12 @@ class KoreanTurk : MainAPI() {
             }
         }
 
-        return searchResults
+        return@with searchResults
     }
 
     override suspend fun quickSearch(query: String): List<SearchResponse> = search(query)
 
-    override suspend fun load(url: String): LoadResponse? {
+    override suspend fun load(url: String): LoadResponse? = with(api) {
         val document = app.get(url).document
 
         val title       = document.selectFirst("h3")?.text()?.trim() ?: return null
@@ -137,13 +139,13 @@ class KoreanTurk : MainAPI() {
         }
 
 
-        return newTvSeriesLoadResponse(title, url, TvType.AsianDrama, episodes) {
+        return@with newTvSeriesLoadResponse(title, url, TvType.AsianDrama, episodes) {
             this.posterUrl = poster
             this.plot      = description
         }
     }
 
-    override suspend fun loadLinks(data: String, isCasting: Boolean, subtitleCallback: (SubtitleFile) -> Unit, callback: (ExtractorLink) -> Unit): Boolean {
+    override suspend fun loadLinks(data: String, isCasting: Boolean, subtitleCallback: (SubtitleFile) -> Unit, callback: (ExtractorLink) -> Unit): Boolean = with(api) {
         Log.d("KRT", "data » $data")
         val document = app.get(data).document
 
@@ -164,6 +166,6 @@ class KoreanTurk : MainAPI() {
             loadExtractor(iframe, "${mainUrl}/", subtitleCallback, callback)
         }
 
-        return true
+        return@with true
     }
 }

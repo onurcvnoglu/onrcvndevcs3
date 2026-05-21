@@ -28,10 +28,8 @@ import com.onurcvnoglu.filmextra.webteizle.*
 @CloudstreamPlugin
 class FilmExtraPlugin: Plugin() {
     override fun load(context: Context) {
-        // Seçili sağlayıcıları doğrudan Cloudstream'e kaydediyoruz (SDK başlatma gereksinimi)
-        registerMainAPI(FilmMakinesi())
-        registerMainAPI(FilmModu())
-        registerMainAPI(HDFilmCehennemi())
+        // Sadece tek eklenti olarak FilmExtra'yı kaydediyoruz
+        registerMainAPI(FilmExtra())
         registerExtractorAPI(com.onurcvnoglu.filmextra.belgeselx.Odnoklassniki())
         registerExtractorAPI(HDPlayerSystem())
         registerExtractorAPI(CloseLoad())

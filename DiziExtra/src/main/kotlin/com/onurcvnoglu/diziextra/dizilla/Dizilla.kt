@@ -40,17 +40,19 @@ import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.SecretKeySpec
 
 
-class Dizilla : MainAPI() {
+import com.onurcvnoglu.diziextra.DiziScraper
+
+class Dizilla(val api: MainAPI) : DiziScraper {
     override var mainUrl = "https://dizilla.to"
     override var name = "Dizilla"
     override val hasMainPage = true
-    override var lang = "tr"
-    override val hasQuickSearch = true
-    override val supportedTypes = setOf(TvType.TvSeries)
+    var lang = "tr"
+    val hasQuickSearch = true
+    val supportedTypes = setOf(TvType.TvSeries)
 
-    override var sequentialMainPage = true        // * https://recloudstream.github.io/dokka/-cloudstream/com.lagradost.cloudstream3/-main-a-p-i/index.html#-2049735995%2FProperties%2F101969414
-    override var sequentialMainPageDelay       = 150L  // ? 0.15 saniye
-    override var sequentialMainPageScrollDelay = 150L  // ? 0.15 saniye
+    var sequentialMainPage = true        // * https://recloudstream.github.io/dokka/-cloudstream/com.lagradost.cloudstream3/-main-a-p-i/index.html#-2049735995%2FProperties%2F101969414
+    var sequentialMainPageDelay       = 150L  // ? 0.15 saniye
+    var sequentialMainPageScrollDelay = 150L  // ? 0.15 saniye
 
     // ! CloudFlare v2
     private val cloudflareKiller by lazy { CloudflareKiller() }
@@ -72,7 +74,7 @@ class Dizilla : MainAPI() {
         }
     }
 	
-    override val supportedSyncNames = setOf(
+    val supportedSyncNames = setOf(
         SyncIdName.Simkl
     )
 
@@ -91,7 +93,7 @@ class Dizilla : MainAPI() {
         "${mainUrl}/api/bg/findSeries?releaseYearStart=1900&releaseYearEnd=2024&imdbPointMin=5&imdbPointMax=10&categoryIdsComma=7&countryIdsComma=&orderType=date_desc&languageId=-1&currentPage=1&currentPageCount=24&queryStr=&categorySlugsComma=&countryCodesComma=" to "Romantik",
     )
 
-    override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
+    override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse = with(api) {
         return try {
             println("Dizilla DEBUG - getMainPage: ${request.data}, page: $page")
 
@@ -119,9 +121,9 @@ class Dizilla : MainAPI() {
                 val home = resultArray.mapNotNull {
                     val title = it.get("title")?.asText() ?: return@mapNotNull null
                     val slug = it.get("slug")?.asText() ?: return@mapNotNull null
-                    val poster = fixPosterUrl(fixUrlNull(it.get("poster")?.asText()))
+                    val poster = fixPosterUrl(api.fixUrlNull(it.get("poster")?.asText()))
 
-                    newTvSeriesSearchResponse(title, fixUrl("/$slug"), TvType.TvSeries) {
+                    api.newTvSeriesSearchResponse(title, api.fixUrl("/$slug"), TvType.TvSeries) {
                         this.posterUrl = poster
                     }
                 }
@@ -235,10 +237,10 @@ class Dizilla : MainAPI() {
                     item.get("back_url")?.asText()
 
                     // itemString: JSON'ın tamamını içeren ham metin (String)
-// item değişkenini (JsonNode) String'e çevirip Regex'e sokuyoruz
+                    // item değişkenini (JsonNode) String'e çevirip Regex'e sokuyoruz
                     val slug = Regex("""\"serie_site_id\":0,.*?\"used_slug\":\"(.*?)\"""").find(item.toString())?.groupValues?.get(1) ?: ""
-                    newTvSeriesSearchResponse(title, fixUrl(slug), TvType.TvSeries) {
-                        this.posterUrl = fixUrlNull(poster)
+                    api.newTvSeriesSearchResponse(title, api.fixUrl(slug), TvType.TvSeries) {
+                        this.posterUrl = api.fixUrlNull(poster)
                     }
                 }
 
@@ -264,10 +266,10 @@ class Dizilla : MainAPI() {
 
     private fun Element.diziler(): SearchResponse {
         val title = this.selectFirst("span.font-normal")?.text() ?: "return null"
-        val href = fixUrlNull(this.selectFirst("a")?.attr("href")) ?: "return null"
-        val posterUrl = fixUrlNull(this.selectFirst("img")?.attr("src"))
+        val href = api.fixUrlNull(this.selectFirst("a")?.attr("href")) ?: "return null"
+        val posterUrl = api.fixUrlNull(this.selectFirst("img")?.attr("src"))
 
-        return newTvSeriesSearchResponse(title, href, TvType.TvSeries) {
+        return api.newTvSeriesSearchResponse(title, href, TvType.TvSeries) {
             this.posterUrl = posterUrl
         }
     }
@@ -279,18 +281,18 @@ class Dizilla : MainAPI() {
 
         val title = "$name - $epName"
 
-        val epDoc = fixUrlNull(this.attr("href"))?.let { Jsoup.parse(app.get(it).body.string()) }
+        val epDoc = api.fixUrlNull(this.attr("href"))?.let { Jsoup.parse(app.get(it).body.string()) }
 
-        val href = fixUrlNull(epDoc?.selectFirst("div.poster a")?.attr("href")) ?: "return null"
+        val href = api.fixUrlNull(epDoc?.selectFirst("div.poster a")?.attr("href")) ?: "return null"
 
-        val posterUrl = fixUrlNull(epDoc?.selectFirst("div.poster img")?.attr("src"))
+        val posterUrl = api.fixUrlNull(epDoc?.selectFirst("div.poster img")?.attr("src"))
 
-        return newTvSeriesSearchResponse(title, href, TvType.TvSeries) {
+        return api.newTvSeriesSearchResponse(title, href, TvType.TvSeries) {
             this.posterUrl = posterUrl
         }
     }
 
-    override suspend fun search(query: String): List<SearchResponse> {
+    override suspend fun search(query: String): List<SearchResponse> = with(api) {
         // 1. API İsteği
         val searchReq = app.post(
             "${mainUrl}/api/bg/searchContent?searchterm=$query",
@@ -328,7 +330,7 @@ class Dizilla : MainAPI() {
         val contentJson: SearchData = objectMapper.readValue(fixedJson)
         print("Dizilla DEBUG - decryptedJson $decryptedJson")
         if (contentJson.state != true) {
-            return emptyList() // State false ise boş liste dönmek daha güvenlidir
+            return@with emptyList() // State false ise boş liste dönmek daha güvenlidir
         }
 
         // 5. Sonuçları SearchResponse formatına dönüştür
@@ -336,18 +338,18 @@ class Dizilla : MainAPI() {
 
         contentJson.result?.forEach { item ->
             val name = item.title.toString()
-            val link = fixUrl(item.slug.toString())
+            val link = api.fixUrl(item.slug.toString())
             val posterLink = fixPosterUrl(item.poster.toString()) ?: ""
             val toSearchResponse = toSearchResponse(name, link, posterLink)
             veriler.add(toSearchResponse)
         }
 
         println("Dizilla DEBUG - Found ${veriler.size} items after decryption")
-        return veriler
+        return@with veriler
     }
 
     private fun toSearchResponse(ad: String, link: String, posterLink: String): SearchResponse {
-        return newTvSeriesSearchResponse(
+        return api.newTvSeriesSearchResponse(
             ad,
             link,
             TvType.TvSeries,
@@ -358,11 +360,11 @@ class Dizilla : MainAPI() {
 
     override suspend fun quickSearch(query: String): List<SearchResponse> = search(query)
 
-    override suspend fun load(url: String): LoadResponse? {
+    override suspend fun load(url: String): LoadResponse? = with(api) {
         val mainReq = app.get(url, interceptor = interceptor)
         val document = mainReq.document
-        val title = document.selectFirst("div.poster.poster h2")?.text() ?: return null
-        val poster = fixPosterUrl(fixUrlNull(document.selectFirst("div.w-full.page-top.relative img")?.attr("src")))
+        val title = document.selectFirst("div.poster.poster h2")?.text() ?: return@with null
+        val poster = fixPosterUrl(api.fixUrlNull(document.selectFirst("div.w-full.page-top.relative img")?.attr("src")))
         val year =
             document.select("div.w-fit.min-w-fit")[1].selectFirst("span.text-sm.opacity-60")?.text()
                 ?.split(" ")?.last()?.toIntOrNull()
@@ -375,7 +377,7 @@ class Dizilla : MainAPI() {
         val episodeses = mutableListOf<Episode>()
 
         for (sezon in document.select("div.flex.items-center.flex-wrap.gap-2.mb-4 a")) {
-            val sezonhref = fixUrl(sezon.attr("href"))
+            val sezonhref = api.fixUrl(sezon.attr("href"))
             val sezonReq = app.get(sezonhref)
             val split = sezonhref.split("-")
             val season = split[split.size-2].toIntOrNull()
@@ -383,9 +385,9 @@ class Dizilla : MainAPI() {
             val episodes = sezonDoc.select("div.episodes")
             for (bolum in episodes.select("div.cursor-pointer")) {
                 val epName = bolum.select("a").last()?.text() ?: continue
-                val epHref = fixUrlNull(bolum.select("a").last()?.attr("href")) ?: continue
+                val epHref = api.fixUrlNull(bolum.select("a").last()?.attr("href")) ?: continue
                 val epEpisode = bolum.selectFirst("a")?.text()?.trim()?.toIntOrNull()
-                val newEpisode = newEpisode(epHref) {
+                val newEpisode = api.newEpisode(epHref) {
                     this.name = epName
                     this.season = season
                     this.episode = epEpisode
@@ -394,12 +396,12 @@ class Dizilla : MainAPI() {
             }
         }
 
-        return newTvSeriesLoadResponse(title, url, TvType.TvSeries, episodeses) {
+        return@with api.newTvSeriesLoadResponse(title, url, TvType.TvSeries, episodeses) {
             this.posterUrl = poster
             this.year = year
             this.plot = description
             this.tags = tags
-            addActors(actors)
+            this.addActors(actors)
         }
     }
 
@@ -408,65 +410,64 @@ class Dizilla : MainAPI() {
         isCasting: Boolean,
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
-    ): Boolean {
+    ): Boolean = with(api) {
         val document = app.get(data, interceptor = interceptor).document
-        val script = document.selectFirst("script#__NEXT_DATA__")?.data() ?: return false
+        val script = document.selectFirst("script#__NEXT_DATA__")?.data() ?: return@with false
 
         val objectMapper = ObjectMapper().registerModule(KotlinModule.Builder().build())
         objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
 
-        return try {
+        return@with try {
             val rootNode = objectMapper.readTree(script)
             val secureData = rootNode.path("props").path("pageProps").path("secureData").asText()
 
-            if (secureData.isEmpty()) return false
+            if (secureData.isEmpty()) false
 
             val decodedData = decryptDizillaResponse(secureData)
 
             if (decodedData.isNullOrEmpty()) {
                 Log.e("DizillaDebug", "HATA: Decoded data boş!")
-                return false
-            }
+                false
+            } else {
+                var linkFound = false
 
-            var linkFound = false
+                // 1. JSON Kurallarını ezip geçiyoruz!
+                // Ham string içinde "source_content":"..." kalıbını bul
+                val contentRegex = Regex(""""source_content"\s*:\s*"((?:[^"\\]|\\.)*)"""")
+                val matches = contentRegex.findAll(decodedData)
 
-            // 1. JSON Kurallarını ezip geçiyoruz!
-            // Ham string içinde "source_content":"..." kalıbını bulan Regex.
-            // İçerideki kaçış karakterli tırnakları (\") sorunsuz tolere eder.
-            val contentRegex = Regex(""""source_content"\s*:\s*"((?:[^"\\]|\\.)*)"""")
-            val matches = contentRegex.findAll(decodedData)
+                matches.forEach { match ->
+                    // 2. Regex ile yakalanan string'i JSON kaçış karakterlerinden temizle
+                    val rawHtml = match.groupValues[1]
+                        .replace("\\\"", "\"")
+                        .replace("\\/", "/")
+                        .replace("\\\\", "\\")
 
-            matches.forEach { match ->
-                // 2. Regex ile yakalanan string'i JSON kaçış karakterlerinden temizle
-                val rawHtml = match.groupValues[1]
-                    .replace("\\\"", "\"")
-                    .replace("\\/", "/")
-                    .replace("\\\\", "\\")
+                    // 3. Temizlenmiş HTML ( <iframe src="//..." ) içinden Jsoup ile src'yi al
+                    if (rawHtml.contains("iframe", ignoreCase = true)) {
+                        var iframeUrl = Jsoup.parse(rawHtml).select("iframe").attr("src")
 
-                // 3. Temizlenmiş HTML ( <iframe src="//..." ) içinden Jsoup ile src'yi al
-                if (rawHtml.contains("iframe", ignoreCase = true)) {
-                    var iframeUrl = Jsoup.parse(rawHtml).select("iframe").attr("src")
+                        // Protokol düzeltmesi
+                        if (iframeUrl.startsWith("//")) {
+                            iframeUrl = "https:$iframeUrl"
+                        }
 
-                    // Protokol düzeltmesi
-                    if (iframeUrl.startsWith("//")) {
-                        iframeUrl = "https:$iframeUrl"
-                    }
+                        val finalUrl = api.fixUrlNull(iframeUrl)
 
-                    val finalUrl = fixUrlNull(iframeUrl)
-
-                    if (!finalUrl.isNullOrEmpty()) {
-                        Log.d("DizillaDebug", "BİNGO! Regex ile Kırık Veriden Alınan Link: $finalUrl")
-                        loadExtractor(finalUrl, "$mainUrl/", subtitleCallback, callback)
-                        linkFound = true
+                        if (!finalUrl.isNullOrEmpty()) {
+                            Log.d("DizillaDebug", "BİNGO! Regex ile Kırık Veriden Alınan Link: $finalUrl")
+                            loadExtractor(finalUrl, "$mainUrl/", subtitleCallback, callback)
+                            linkFound = true
+                        }
                     }
                 }
-            }
 
-            if (!linkFound) {
-                Log.e("DizillaDebug", "HATA: Regex taraması link bulamadı. Ham Veri: ${decodedData.take(500)}")
-            }
+                if (!linkFound) {
+                    Log.e("DizillaDebug", "HATA: Regex taraması link bulamadı. Ham Veri: ${decodedData.take(500)}")
+                }
 
-            linkFound
+                linkFound
+            }
 
         } catch (e: Exception) {
             Log.e("DizillaDebug", "Kritik Hata: ${e.message}")

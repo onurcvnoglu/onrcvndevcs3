@@ -6,17 +6,19 @@ import com.lagradost.cloudstream3.utils.*
 import org.jsoup.nodes.Element
 
 
-class TRasyalog : MainAPI() {
+import com.onurcvnoglu.asyaextra.AsyaScraper
+
+class TRasyalog(val api: MainAPI) : AsyaScraper {
     override var mainUrl        = "https://asyalog.co"
     override var name           = "AsyaLog"
     override val hasMainPage    = true
-    override var lang           = "tr"
-    override val hasQuickSearch = false
-    override val supportedTypes = setOf(TvType.TvSeries)
+    var lang           = "tr"
+    val hasQuickSearch = false
+    val supportedTypes = setOf(TvType.TvSeries)
 
-    override var sequentialMainPage = true
-    override var sequentialMainPageDelay       = 500L
-    override var sequentialMainPageScrollDelay = 500L
+    var sequentialMainPage = true
+    var sequentialMainPageDelay       = 500L
+    var sequentialMainPageScrollDelay = 500L
 
     override val mainPage = mainPageOf(
         "${mainUrl}/diziler/ulke/guney-kore/" to "Kore Dizileri",
@@ -27,26 +29,26 @@ class TRasyalog : MainAPI() {
         "${mainUrl}/devam-eden-diziler/" to "Devam eden Diziler"
     )
 
-    override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
+    override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse = with(api) {
         val document = app.get("${request.data}/page/$page/").document
         // HATA DÜZELTİLDİ: t-baslik yerine asıl dizi kartlarını tutan frag-k sınıfı seçildi.
         val home = document.select("div.frag-k").mapNotNull { 
             it.toMainPageResult() 
         }
-        return newHomePageResponse(request.name, home)
+        return@with newHomePageResponse(request.name, home)
     }
 
-    private fun Element.toMainPageResult(): SearchResponse? {
+    private fun Element.toMainPageResult(): SearchResponse? = with(api) {
         // HTML yapısına uygun olarak başlık, link ve poster çekimi
-        val title = this.selectFirst("a.baslik span")?.text()?.trim()
-            ?: this.selectFirst("a.resim")?.attr("title")?.trim() 
+        val title = this@toMainPageResult.selectFirst("a.baslik span")?.text()?.trim()
+            ?: this@toMainPageResult.selectFirst("a.resim")?.attr("title")?.trim() 
             ?: return null
         
-        val href = fixUrlNull(this.selectFirst("a.resim")?.attr("href") 
-            ?: this.selectFirst("a.baslik")?.attr("href")) 
+        val href = fixUrlNull(this@toMainPageResult.selectFirst("a.resim")?.attr("href") 
+            ?: this@toMainPageResult.selectFirst("a.baslik")?.attr("href")) 
             ?: return null
 
-        val posterUrl = this.selectFirst("a.resim img")?.let { img ->
+        val posterUrl = this@toMainPageResult.selectFirst("a.resim img")?.let { img ->
             fixUrlNull(
                 img.attr("src").takeIf { it.isNotBlank() }
                     ?: img.attr("data-src")
@@ -58,18 +60,18 @@ class TRasyalog : MainAPI() {
         }
     }
 
-    override suspend fun search(query: String): List<SearchResponse> {
+    override suspend fun search(query: String): List<SearchResponse> = with(api) {
         val encodedQuery = query.trim().replace(" ", "+")
         val document = app.get("${mainUrl}/?s=$encodedQuery").document
         // Arama sonuçlarında da büyük ihtimalle frag-k kullanılıyordur, alternatifleri de korudum.
-        return document.select("div.frag-k, div.post-container, .sag-liste li").mapNotNull { 
+        return@with document.select("div.frag-k, div.post-container, .sag-liste li").mapNotNull { 
             it.toMainPageResult() 
         }
     }
 
     override suspend fun quickSearch(query: String): List<SearchResponse> = search(query)
 
-    override suspend fun load(url: String): LoadResponse? {
+    override suspend fun load(url: String): LoadResponse? = with(api) {
         val document = app.get(url).document
 
         // SENIOR DOKUNUŞU: Spesifik class'lar bulunamazsa genel <h1> etiketine,
@@ -134,18 +136,19 @@ class TRasyalog : MainAPI() {
 
         val sortedEpisodes = episodes.distinctBy { it.data }.sortedBy { it.episode ?: Int.MAX_VALUE }
 
-        return newTvSeriesLoadResponse(title, url, TvType.TvSeries, sortedEpisodes) {
+        return@with newTvSeriesLoadResponse(title, url, TvType.TvSeries, sortedEpisodes) {
             this.posterUrl = poster
             this.plot = description
             this.tags = tags
         }
     }
+
     override suspend fun loadLinks(
         data: String,
         isCasting: Boolean,
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
-    ): Boolean {
+    ): Boolean = with(api) {
         // URL'yi parçala: url#fragment?params
         // Örn: .../dizi#bolum-1-2?ep=1
         val fragmentParts = data.split("#")
@@ -176,6 +179,6 @@ class TRasyalog : MainAPI() {
             }
         }
 
-        return true
+        return@with true
     }
 }

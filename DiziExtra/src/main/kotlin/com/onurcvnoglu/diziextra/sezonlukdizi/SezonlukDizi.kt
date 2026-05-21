@@ -10,14 +10,15 @@ import com.lagradost.cloudstream3.LoadResponse.Companion.addActors
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import com.onurcvnoglu.diziextra.DiziScraper
 
-class SezonlukDizi : MainAPI() {
-    override var mainUrl              = "https://sezonlukdizi8.com"
-    override var name                 = "SezonlukDizi"
-    override val hasMainPage          = true
-    override var lang                 = "tr"
-    override val hasQuickSearch       = false
-    override val supportedTypes       = setOf(TvType.TvSeries)
+class SezonlukDizi(val api: MainAPI) : DiziScraper {
+    override var mainUrl     = "https://sezonlukdizi8.com"
+    override var name        = "SezonlukDizi"
+    override val hasMainPage = true
+    var lang                 = "tr"
+    val hasQuickSearch       = false
+    val supportedTypes       = setOf(TvType.TvSeries)
 
     override val mainPage = mainPageOf(
         "${mainUrl}/diziler.asp?siralama_tipi=id&s="          to "Son Eklenenler",
@@ -30,34 +31,34 @@ class SezonlukDizi : MainAPI() {
         "${mainUrl}/diziler.asp?siralama_tipi=id&kat=6&s="    to "Belgeseller",
     )
 
-    override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
+    override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse = with(api) {
         val document = app.get("${request.data}${page}").document
         val home     = document.select("div.afis a").mapNotNull { it.toSearchResult() }
 
-        return newHomePageResponse(request.name, home)
+        return@with newHomePageResponse(request.name, home)
     }
 
     private fun Element.toSearchResult(): SearchResponse? {
         val title     = this.selectFirst("div.description")?.text()?.trim() ?: return null
-        val href      = fixUrlNull(this.attr("href")) ?: return null
-        val posterUrl = fixUrlNull(this.selectFirst("img")?.attr("data-src"))
+        val href      = api.fixUrlNull(this.attr("href")) ?: return null
+        val posterUrl = api.fixUrlNull(this.selectFirst("img")?.attr("data-src"))
 
-        return newTvSeriesSearchResponse(title, href, TvType.TvSeries) { this.posterUrl = posterUrl }
+        return api.newTvSeriesSearchResponse(title, href, TvType.TvSeries) { this.posterUrl = posterUrl }
     }
 
-    override suspend fun search(query: String): List<SearchResponse> {
+    override suspend fun search(query: String): List<SearchResponse> = with(api) {
         val document = app.get("${mainUrl}/diziler.asp?adi=${query}").document
 
-        return document.select("div.afis a").mapNotNull { it.toSearchResult() }
+        return@with document.select("div.afis a").mapNotNull { it.toSearchResult() }
     }
 
     override suspend fun quickSearch(query: String): List<SearchResponse> = search(query)
 
-    override suspend fun load(url: String): LoadResponse? {
+    override suspend fun load(url: String): LoadResponse? = with(api) {
         val document = app.get(url).document
 
-        val title       = document.selectFirst("div.header")?.text()?.trim() ?: return null
-        val poster      = fixUrlNull(document.selectFirst("div.image img")?.attr("data-src")) ?: return null
+        val title       = document.selectFirst("div.header")?.text()?.trim() ?: return@with null
+        val poster      = api.fixUrlNull(document.selectFirst("div.image img")?.attr("data-src")) ?: return@with null
         val year        = document.selectFirst("div.extra span")?.text()?.trim()?.split("-")?.first()?.toIntOrNull()
         val description = document.selectFirst("span#tartismayorum-konu")?.text()?.trim()
         val tags        = document.select("div.labels a[href*='tur']").mapNotNull { it.text().trim() }
@@ -69,21 +70,20 @@ class SezonlukDizi : MainAPI() {
         val actors     = actorsReq.select("div.doubling div.ui").map {
             Actor(
                 it.selectFirst("div.header")!!.text().trim(),
-                fixUrlNull(it.selectFirst("img")?.attr("src"))
+                api.fixUrlNull(it.selectFirst("img")?.attr("src"))
             )
         }
-
 
         val episodesReq = app.get("${mainUrl}/bolumler/${endpoint}").document
         val episodes    = mutableListOf<Episode>()
         for (sezon in episodesReq.select("table.unstackable")) {
             for (bolum in sezon.select("tbody tr")) {
                 val epName    = bolum.selectFirst("td:nth-of-type(4) a")?.text()?.trim() ?: continue
-                val epHref    = fixUrlNull(bolum.selectFirst("td:nth-of-type(4) a")?.attr("href")) ?: continue
+                val epHref    = api.fixUrlNull(bolum.selectFirst("td:nth-of-type(4) a")?.attr("href")) ?: continue
                 val epEpisode = bolum.selectFirst("td:nth-of-type(3)")?.text()?.substringBefore(".Bölüm")?.trim()?.toIntOrNull()
                 val epSeason  = bolum.selectFirst("td:nth-of-type(2)")?.text()?.substringBefore(".Sezon")?.trim()?.toIntOrNull()
 
-                episodes.add(newEpisode(epHref) {
+                episodes.add(api.newEpisode(epHref) {
                     this.name    = epName
                     this.season  = epSeason
                     this.episode = epEpisode
@@ -91,8 +91,7 @@ class SezonlukDizi : MainAPI() {
             }
         }
 
-
-        return newTvSeriesLoadResponse(title, url, TvType.TvSeries, episodes) {
+        return@with api.newTvSeriesLoadResponse(title, url, TvType.TvSeries, episodes) {
             this.posterUrl = poster
             this.year      = year
             this.plot      = description
@@ -107,11 +106,11 @@ class SezonlukDizi : MainAPI() {
         isCasting: Boolean,
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
-    ): Boolean {
+    ): Boolean = with(api) {
         Log.d("SZD", "data » $data")
         val document = app.get(data).document
         val aspData = getAspData()
-        val bid = document.selectFirst("div#dilsec")?.attr("data-id") ?: return false
+        val bid = document.selectFirst("div#dilsec")?.attr("data-id") ?: return@with false
         Log.d("SZD", "bid » $bid")
 
         // --- ALTYAZI KISMI ---
@@ -135,7 +134,7 @@ class SezonlukDizi : MainAPI() {
                 ).document
 
                 val iframeSrc = veriResponse.selectFirst("iframe")?.attr("src")
-                val iframe = fixUrlNull(iframeSrc) ?: continue
+                val iframe = api.fixUrlNull(iframeSrc) ?: continue
                 Log.d("SZD", "dil»1 | iframe » $iframe")
 
                 loadExtractor(iframe, "${mainUrl}/", subtitleCallback) { link ->
@@ -147,7 +146,6 @@ class SezonlukDizi : MainAPI() {
                                 url = link.url,
                                 type = link.type
                             ) {
-                                // İsteğinize uygun olarak Quality, Headers'dan önce geliyor.
                                 this.quality = link.quality
                                 this.headers = link.headers
                             }
@@ -178,38 +176,36 @@ class SezonlukDizi : MainAPI() {
                 ).document
 
                 val iframeSrc = veriResponse.selectFirst("iframe")?.attr("src")
-                val iframe = fixUrlNull(iframeSrc) ?: continue
+                val iframe = api.fixUrlNull(iframeSrc) ?: continue
                 Log.d("SZD", "dil»0 | iframe » $iframe")
 
                 loadExtractor(iframe, "${mainUrl}/", subtitleCallback) { link ->
                     CoroutineScope(Dispatchers.IO).launch {
                         callback.invoke(
-                    newExtractorLink(
-                        source = "Dublaj - ${veri.baslik}",
-                        name = "Dublaj - ${veri.baslik}",
-                        url = link.url,
-                        type = link.type
-                    ) {
-                        // Quality, Headers'dan önce
-                        this.quality = link.quality
-                        this.headers = link.headers
-                    }
+                            newExtractorLink(
+                                source = "Dublaj - ${veri.baslik}",
+                                name = "Dublaj - ${veri.baslik}",
+                                url = link.url,
+                                type = link.type
+                            ) {
+                                this.quality = link.quality
+                                this.headers = link.headers
+                            }
                         )
                     }
                 }
             }
         }
 
-        return true
+        return@with true
     }
 
-    //Helper function for getting the number (probably some kind of version?) after the dataAlternatif and dataEmbed
-    private suspend fun getAspData() : AspData{
-        val websiteCustomJavascript = app.get("${this.mainUrl}/js/site.min.js")
+    private suspend fun getAspData() : AspData = with(api) {
+        val websiteCustomJavascript = app.get("${this@SezonlukDizi.mainUrl}/js/site.min.js")
         val dataAlternatifAsp = Regex("""dataAlternatif(.*?).asp""").find(websiteCustomJavascript.text)?.groupValues?.get(1)
             .toString()
         val dataEmbedAsp = Regex("""dataEmbed(.*?).asp""").find(websiteCustomJavascript.text)?.groupValues?.get(1)
             .toString()
-        return AspData(dataAlternatifAsp,dataEmbedAsp)
+        return@with AspData(dataAlternatifAsp,dataEmbedAsp)
     }
 }

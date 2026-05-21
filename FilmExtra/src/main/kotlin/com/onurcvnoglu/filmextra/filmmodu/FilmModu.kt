@@ -9,15 +9,15 @@ import com.lagradost.cloudstream3.utils.*
 import com.lagradost.cloudstream3.LoadResponse.Companion.addActors
 import com.lagradost.cloudstream3.LoadResponse.Companion.addTrailer
 
-class FilmModu : MainAPI() {
-    override var mainUrl              = "https://www.filmmodu.one"
-    override var name                 = "FilmModu"
-    override val hasMainPage          = true
-    override var lang                 = "tr"
-    override val hasQuickSearch       = false
-    override val supportedTypes       = setOf(TvType.Movie)
+class FilmModu(val api: MainAPI) {
+    var mainUrl              = "https://www.filmmodu.one"
+    var name                 = "FilmModu"
+    val hasMainPage          = true
+    var lang                 = "tr"
+    val hasQuickSearch       = false
+    val supportedTypes       = setOf(TvType.Movie)
 
-    override val mainPage = mainPageOf(
+    val mainPage = mainPageOf(
         "${mainUrl}/hd-film-kategori/4k-film-izle"          to "4K",
         "${mainUrl}/hd-film-kategori/aile-filmleri"         to "Aile",
         "${mainUrl}/hd-film-kategori/aksiyon"               to "Aksiyon",
@@ -48,43 +48,43 @@ class FilmModu : MainAPI() {
         "${mainUrl}/hd-film-kategori/vahsi-bati-filmleri"   to "Vahşi Batı",
     )
 
-    override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
+    suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse = with(api) {
         val document = app.get("${request.data}?page=${page}").document
         val home     = document.select("div.movie").mapNotNull { it.toMainPageResult() }
 
-        return newHomePageResponse(request.name, home)
+        newHomePageResponse(request.name, home)
     }
 
     private fun Element.toMainPageResult(): SearchResponse? {
         val title     = this.selectFirst("a")?.text() ?: return null
-        val href      = fixUrlNull(this.selectFirst("a")?.attr("href")) ?: return null
-        val posterUrl = fixUrlNull(this.selectFirst("picture img")?.attr("data-src"))
+        val href      = api.fixUrlNull(this.selectFirst("a")?.attr("href")) ?: return null
+        val posterUrl = api.fixUrlNull(this.selectFirst("picture img")?.attr("data-src"))
 
-        return newMovieSearchResponse(title, href, TvType.Movie) { this.posterUrl = posterUrl }
+        return api.newMovieSearchResponse(title, href, TvType.Movie) { this.posterUrl = posterUrl }
     }
 
-    override suspend fun search(query: String): List<SearchResponse> {
+    suspend fun search(query: String): List<SearchResponse> {
         val document = app.get("${mainUrl}/film-ara?term=${query}").document
 
         return document.select("div.movie").mapNotNull { it.toMainPageResult() }
     }
 
-    override suspend fun quickSearch(query: String): List<SearchResponse> = search(query)
+    suspend fun quickSearch(query: String): List<SearchResponse> = search(query)
 
-    override suspend fun load(url: String): LoadResponse? {
+    suspend fun load(url: String): LoadResponse? {
         val document = app.get(url).document
 
         val orgTitle    = document.selectFirst("div.titles h1")?.text()?.trim() ?: return null
         val altTitle    = document.selectFirst("div.titles h2")?.text()?.trim() ?: ""
         val title       = if (altTitle.isNotEmpty()) "$orgTitle - $altTitle" else orgTitle
-        val poster      = fixUrlNull(document.selectFirst("img.img-responsive")?.attr("src"))
+        val poster      = api.fixUrlNull(document.selectFirst("img.img-responsive")?.attr("src"))
         val description = document.selectFirst("p[itemprop='description']")?.text()?.trim()
         val year        = document.selectFirst("span[itemprop='dateCreated']")?.text()?.trim()?.toIntOrNull()
         val tags        = document.select("div.description a[href*='-kategori/']").map { it.text() }
         val actors      = document.select("div.description a[href*='-oyuncu-']").map { Actor(it.selectFirst("span")!!.text()) }
         val trailer     = document.selectFirst("div.container iframe")?.attr("src")
 
-        return newMovieLoadResponse(title, url, TvType.Movie, url) {
+        return api.newMovieLoadResponse(title, url, TvType.Movie, url) {
             this.posterUrl = poster
             this.plot      = description
             this.year      = year
@@ -94,7 +94,7 @@ class FilmModu : MainAPI() {
         }
     }
 
-    override suspend fun loadLinks(data: String, isCasting: Boolean, subtitleCallback: (SubtitleFile) -> Unit, callback: (ExtractorLink) -> Unit): Boolean {
+    suspend fun loadLinks(data: String, isCasting: Boolean, subtitleCallback: (SubtitleFile) -> Unit, callback: (ExtractorLink) -> Unit): Boolean = with(api) {
         Log.d("FLMMD", "data » $data")
         val document = app.get(data).document
 
@@ -121,18 +121,18 @@ class FilmModu : MainAPI() {
             vidReq.sources?.forEach { source ->
                 callback.invoke(
                     newExtractorLink(
-                        source  = "${this.name} - $altName",
-                        name    = "${this.name} - $altName",
+                        source  = "${this@FilmModu.name} - $altName",
+                        name    = "${this@FilmModu.name} - $altName",
                         url     = fixUrl(source.src),
                         type    = ExtractorLinkType.M3U8
                     ) {
-                       headers = mapOf("Referer" to "${mainUrl}/")
-                       quality = getQualityFromName(source.label)
-            }
+                        headers = mapOf("Referer" to "${mainUrl}/")
+                        quality = getQualityFromName(source.label)
+                    }
                 )
             }
         }
 
-        return true
+        return@with true
     }
 }

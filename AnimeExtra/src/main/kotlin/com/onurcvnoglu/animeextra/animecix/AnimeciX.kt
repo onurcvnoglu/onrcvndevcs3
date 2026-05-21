@@ -7,18 +7,19 @@ import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*
 import com.lagradost.cloudstream3.LoadResponse.Companion.addActors
 import com.lagradost.cloudstream3.LoadResponse.Companion.addTrailer
+import com.onurcvnoglu.animeextra.AnimeScraper
 
-class AnimeciX : MainAPI() {
+class AnimeciX(val api: MainAPI) : AnimeScraper {
     override var mainUrl              = "https://animecix.tv"
     override var name                 = "AnimeciX"
     override val hasMainPage          = true
-    override var lang                 = "tr"
-    override val hasQuickSearch       = false
-    override val supportedTypes       = setOf(TvType.Anime)
+    var lang                 = "tr"
+    val hasQuickSearch       = false
+    val supportedTypes       = setOf(TvType.Anime)
 
-    override var sequentialMainPage = true        // * https://recloudstream.github.io/dokka/-cloudstream/com.lagradost.cloudstream3/-main-a-p-i/index.html#-2049735995%2FProperties%2F101969414
-    override var sequentialMainPageDelay       = 200L  // ? 0.20 saniye
-    override var sequentialMainPageScrollDelay = 200L  // ? 0.20 saniye
+    var sequentialMainPage = true        // * https://recloudstream.github.io/dokka/-cloudstream/com.lagradost.cloudstream3/-main-a-p-i/index.html#-2049735995%2FProperties%2F101969414
+    var sequentialMainPageDelay       = 200L  // ? 0.20 saniye
+    var sequentialMainPageScrollDelay = 200L  // ? 0.20 saniye
 
     override val mainPage = mainPageOf(
         "${mainUrl}/secure/last-episodes"                          to "Son Eklenen Bölümler",
@@ -26,8 +27,8 @@ class AnimeciX : MainAPI() {
         "${mainUrl}/secure/titles?type=movie&onlyStreamable=true"  to "Filmler",
     )
 
-    override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
-        return if (request.data.contains("/last-episodes")) {
+    override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse? = with(api) {
+        return@with if (request.data.contains("/last-episodes")) {
             val response = app.get(
                 "${mainUrl}/secure/last-episodes?page=$page&perPage=10",
                 headers = mapOf(
@@ -69,10 +70,10 @@ class AnimeciX : MainAPI() {
         }
     }
 
-    override suspend fun search(query: String): List<SearchResponse> {
-        val response = app.get("${mainUrl}/secure/search/${query}?limit=20").parsedSafe<Search>() ?: return listOf()
+    override suspend fun search(query: String): List<SearchResponse>? = with(api) {
+        val response = app.get("${mainUrl}/secure/search/${query}?limit=20").parsedSafe<Search>() ?: return@with listOf()
 
-        return response.results.map { anime ->
+        return@with response.results.map { anime ->
             newAnimeSearchResponse(
                 anime.title,
                 "${mainUrl}/secure/titles/${anime.id}?titleId=${anime.id}",
@@ -83,21 +84,21 @@ class AnimeciX : MainAPI() {
         }
     }
 
-    override suspend fun quickSearch(query: String): List<SearchResponse> = search(query)
+    override suspend fun quickSearch(query: String): List<SearchResponse>? = search(query)
 
-    override suspend fun load(url: String): LoadResponse? {
+    override suspend fun load(url: String): LoadResponse? = with(api) {
         val response = app.get(
             url,
             headers = mapOf(
                 "x-e-h" to "7Y2ozlO+QysR5w9Q6Tupmtvl9jJp7ThFH8SB+Lo7NvZjgjqRSqOgcT2v4ISM9sP10LmnlYI8WQ==.xrlyOBFS5BHjQ2Lk"
             )
-        ).parsedSafe<Title>() ?: return null
+        ).parsedSafe<Title>() ?: return@with null
         val episodes = mutableListOf<Episode>()
         val titleId  = url.substringAfter("?titleId=")
 
         if (response.title.titleType == "anime") {
             for (sezon in response.title.seasons) {
-                val sezonResponse = app.get("${mainUrl}/secure/related-videos?episode=1&season=${sezon.number}&videoId=0&titleId=${titleId}").parsedSafe<TitleVideos>() ?: return null
+                val sezonResponse = app.get("${mainUrl}/secure/related-videos?episode=1&season=${sezon.number}&videoId=0&titleId=${titleId}").parsedSafe<TitleVideos>() ?: return@with null
                 for (video in sezonResponse.videos) {
                     episodes.add(newEpisode(video.url) {
                         this.name = "${video.seasonNum}. Sezon ${video.episodeNum}. Bölüm"
@@ -116,8 +117,7 @@ class AnimeciX : MainAPI() {
             }
         }
 
-
-        return newTvSeriesLoadResponse(
+        return@with newTvSeriesLoadResponse(
             response.title.title,
             "${mainUrl}/secure/titles/${response.title.id}?titleId=${response.title.id}",
             TvType.Anime,
@@ -131,43 +131,44 @@ class AnimeciX : MainAPI() {
             addTrailer(response.title.trailer)
         }
     }
-override suspend fun loadLinks(
-    data: String,
-    isCasting: Boolean,
-    subtitleCallback: (SubtitleFile) -> Unit,
-    callback: (ExtractorLink) -> Unit
-): Boolean {
-    Log.d("ACX", "data » $data")
-    val pageUrl = "$mainUrl/$data"
 
-    // Sayfayı çek
-    val response = app.get(pageUrl, referer = "$mainUrl/")
-    var iframeLink = response.url
-    Log.d("ACX", "iframeLink » $iframeLink")
+    override suspend fun loadLinks(
+        data: String,
+        isCasting: Boolean,
+        subtitleCallback: (SubtitleFile) -> Unit,
+        callback: (ExtractorLink) -> Unit
+    ): Boolean = with(api) {
+        Log.d("ACX", "data » $data")
+        val pageUrl = "$mainUrl/$data"
 
-    // Eğer iframeLink içinde çift URL varsa düzelt
-    val doubleUrlRegex = Regex("https://animecix.tv/(https://animecix.tv/secure/\\S+)")
-    val match = doubleUrlRegex.find(iframeLink)
-    if (match != null) {
-        iframeLink = match.groupValues[1]
-        Log.d("ACX", "Corrected iframeLink » $iframeLink")
-    }
+        // Sayfayı çek
+        val response = app.get(pageUrl, referer = "$mainUrl/")
+        var iframeLink = response.url
+        Log.d("ACX", "iframeLink » $iframeLink")
 
-    // Eğer dizi (best-video) ise yönlendirmeyi takip et
-    if (iframeLink.contains("/secure/best-video")) {
-        val redirectResponse = app.get(iframeLink, referer = "$mainUrl/")
-        val redirectedUrl = redirectResponse.url
-        Log.d("ACX", "Redirected final URL » $redirectedUrl")
-
-        if (redirectedUrl.contains("tau-video")) {
-            loadExtractor(redirectedUrl, "$mainUrl/", subtitleCallback, callback)
-        } else {
-            Log.d("ACX", "Redirect failed or unexpected URL: $redirectedUrl")
+        // Eğer iframeLink içinde çift URL varsa düzelt
+        val doubleUrlRegex = Regex("https://animecix.tv/(https://animecix.tv/secure/\\S+)")
+        val match = doubleUrlRegex.find(iframeLink)
+        if (match != null) {
+            iframeLink = match.groupValues[1]
+            Log.d("ACX", "Corrected iframeLink » $iframeLink")
         }
-    } else {
-        loadExtractor(iframeLink, "$mainUrl/", subtitleCallback, callback)
-    }
 
-    return true
-}
+        // Eğer dizi (best-video) ise yönlendirmeyi takip et
+        if (iframeLink.contains("/secure/best-video")) {
+            val redirectResponse = app.get(iframeLink, referer = "$mainUrl/")
+            val redirectedUrl = redirectResponse.url
+            Log.d("ACX", "Redirected final URL » $redirectedUrl")
+
+            if (redirectedUrl.contains("tau-video")) {
+                loadExtractor(redirectedUrl, "$mainUrl/", subtitleCallback, callback)
+            } else {
+                Log.d("ACX", "Redirect failed or unexpected URL: $redirectedUrl")
+            }
+        } else {
+            loadExtractor(iframeLink, "$mainUrl/", subtitleCallback, callback)
+        }
+
+        return@with true
+    }
 }

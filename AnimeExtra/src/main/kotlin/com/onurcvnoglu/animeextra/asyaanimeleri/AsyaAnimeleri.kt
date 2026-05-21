@@ -7,18 +7,19 @@ import android.util.Log
 import org.jsoup.nodes.Element
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*
+import com.onurcvnoglu.animeextra.AnimeScraper
 
-class AsyaAnimeleri : MainAPI() {
+class AsyaAnimeleri(val api: MainAPI) : AnimeScraper {
     override var mainUrl              = "https://asyaanimeleri.top"
     override var name                 = "AsyaAnimeleri"
     override val hasMainPage          = true
-    override var lang                 = "tr"
-    override val hasQuickSearch       = false
-    override val supportedTypes       = setOf(TvType.Anime)
+    var lang                 = "tr"
+    val hasQuickSearch       = false
+    val supportedTypes       = setOf(TvType.Anime)
 
-    override var sequentialMainPage            = true
-    override var sequentialMainPageDelay        = 250L
-    override var sequentialMainPageScrollDelay  = 250L
+    var sequentialMainPage            = true
+    var sequentialMainPageDelay        = 250L
+    var sequentialMainPageScrollDelay  = 250L
 
     override val mainPage = mainPageOf(
         "${mainUrl}/"                                  to "Son Eklenenler",
@@ -38,57 +39,55 @@ class AsyaAnimeleri : MainAPI() {
         "${mainUrl}/genres/super-guc/"                  to "Süper Güç",
     )
 
-    override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
+    override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse? = with(api) {
         val url = if (page > 1) "${request.data}page/${page}/" else request.data
         val document = app.get(url).document
 
         val home = if (request.data == "${mainUrl}/") {
-            
             document.select("div.listupd div.utimes").mapNotNull { it.toLatestResult() }
         } else {
-            
             document.select("div.listupd article div.bsx").mapNotNull { it.toSearchResult() }
         }
 
-        return newHomePageResponse(request.name, home)
+        return@with newHomePageResponse(request.name, home)
     }
 
-    private fun Element.toLatestResult(): SearchResponse? {
-        val anchor    = this.selectFirst("a") ?: return null
-        val title     = anchor.selectFirst("div.tt")?.text()?.trim() ?: return null
-        val href      = fixUrlNull(anchor.attr("href")) ?: return null
+    private fun Element.toLatestResult(): SearchResponse? = with(api) {
+        val anchor    = this@toLatestResult.selectFirst("a") ?: return@with null
+        val title     = anchor.selectFirst("div.tt")?.text()?.trim() ?: return@with null
+        val href      = fixUrlNull(anchor.attr("href")) ?: return@with null
         val posterUrl = fixUrlNull(anchor.selectFirst("img")?.attr("src"))
 
-        return newAnimeSearchResponse(title, href, TvType.Anime) {
+        return@with newAnimeSearchResponse(title, href, TvType.Anime) {
             this.posterUrl = posterUrl
         }
     }
 
-    private fun Element.toSearchResult(): SearchResponse? {
-        val anchor    = this.selectFirst("a") ?: return null
+    private fun Element.toSearchResult(): SearchResponse? = with(api) {
+        val anchor    = this@toSearchResult.selectFirst("a") ?: return@with null
         val title     = anchor.attr("title").ifEmpty {
-            this.selectFirst("div.tt")?.text()?.trim()
-        } ?: return null
-        val href      = fixUrlNull(anchor.attr("href")) ?: return null
+            this@toSearchResult.selectFirst("div.tt")?.text()?.trim()
+        } ?: return@with null
+        val href      = fixUrlNull(anchor.attr("href")) ?: return@with null
         val posterUrl = fixUrlNull(anchor.selectFirst("img")?.let { it.attr("data-src").ifEmpty { it.attr("src") } })
 
-        return newAnimeSearchResponse(title, href, TvType.Anime) {
+        return@with newAnimeSearchResponse(title, href, TvType.Anime) {
             this.posterUrl = posterUrl
         }
     }
 
-    override suspend fun search(query: String): List<SearchResponse> {
+    override suspend fun search(query: String): List<SearchResponse>? = with(api) {
         val document = app.get("${mainUrl}/?s=${query}").document
 
-        return document.select("div.listupd article div.bsx").mapNotNull { it.toSearchResult() }
+        return@with document.select("div.listupd article div.bsx").mapNotNull { it.toSearchResult() }
     }
 
-    override suspend fun quickSearch(query: String): List<SearchResponse> = search(query)
+    override suspend fun quickSearch(query: String): List<SearchResponse>? = search(query)
 
-    override suspend fun load(url: String): LoadResponse? {
+    override suspend fun load(url: String): LoadResponse? = with(api) {
         val document = app.get(url).document
 
-        val title       = document.selectFirst("h1.entry-title")?.text()?.trim() ?: return null
+        val title       = document.selectFirst("h1.entry-title")?.text()?.trim() ?: return@with null
         val poster      = fixUrlNull(
             document.selectFirst("div.thumb img")?.let { it.attr("data-src").ifEmpty { it.attr("src") } }
         )
@@ -111,7 +110,7 @@ class AsyaAnimeleri : MainAPI() {
             })
         }
 
-        return newTvSeriesLoadResponse(title, url, TvType.Anime, episodes) {
+        return@with newTvSeriesLoadResponse(title, url, TvType.Anime, episodes) {
             this.posterUrl = poster
             this.plot      = description
             this.tags      = tags
@@ -123,11 +122,10 @@ class AsyaAnimeleri : MainAPI() {
         isCasting: Boolean,
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
-    ): Boolean {
+    ): Boolean = with(api) {
         Log.d("AAE", "data » $data")
         val document = app.get(data).document
 
-        
         val mirrorOptions = document.select("select.mirror option")
         Log.d("AAE", "Mirror sayısı: ${mirrorOptions.size}")
 
@@ -136,11 +134,9 @@ class AsyaAnimeleri : MainAPI() {
             if (base64Value.isBlank()) continue
 
             try {
-               
                 val decodedHtml = String(Base64.decode(base64Value, Base64.DEFAULT))
                 Log.d("AAE", "Decoded HTML » $decodedHtml")
 
-                
                 val iframeSrc = Regex("""src="([^"]+)"""").find(decodedHtml)?.groupValues?.get(1)
                 if (iframeSrc.isNullOrBlank()) continue
                 Log.d("AAE", "iframe src » $iframeSrc")
@@ -151,7 +147,6 @@ class AsyaAnimeleri : MainAPI() {
             }
         }
 
-        
         document.select("div#pembed iframe, div.player-embed iframe").forEach { iframe ->
             val iframeSrc = iframe.attr("src")
             if (iframeSrc.isNotBlank()) {
@@ -160,6 +155,6 @@ class AsyaAnimeleri : MainAPI() {
             }
         }
 
-        return true
+        return@with true
     }
 }

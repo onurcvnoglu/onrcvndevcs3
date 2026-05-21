@@ -17,10 +17,7 @@ import com.onurcvnoglu.diziextra.tlctr.*
 @CloudstreamPlugin
 class DiziExtraPlugin: Plugin() {
     override fun load(context: Context) {
-        // Seçili sağlayıcıları doğrudan Cloudstream'e kaydediyoruz (SDK başlatma gereksinimi)
-        registerMainAPI(Dizilla())
-        registerMainAPI(DiziPalOriginal())
-        registerMainAPI(SezonlukDizi())
+        registerMainAPI(DiziExtra())
         registerExtractorAPI(HDMomPlayer())
         registerExtractorAPI(HDPlayerSystem())
         registerExtractorAPI(VideoSeyred())

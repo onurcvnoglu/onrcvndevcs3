@@ -13,17 +13,19 @@ import okhttp3.Interceptor
 import okhttp3.Response
 import org.jsoup.Jsoup
 
-class DiziKorea : MainAPI() {
+import com.onurcvnoglu.asyaextra.AsyaScraper
+
+class DiziKorea(val api: MainAPI) : AsyaScraper {
     override var mainUrl              = "https://dizikorea3.com"
     override var name                 = "DiziKorea"
     override val hasMainPage          = true
-    override var lang                 = "tr"
-    override val hasQuickSearch       = true
-    override val supportedTypes       = setOf(TvType.AsianDrama)
+    var lang                 = "tr"
+    val hasQuickSearch       = true
+    val supportedTypes       = setOf(TvType.AsianDrama)
 
-        override var sequentialMainPage = true        // * https://recloudstream.github.io/dokka/-cloudstream/com.lagradost.cloudstream3/-main-a-p-i/index.html#-2049735995%2FProperties%2F101969414
-    override var sequentialMainPageDelay       = 150L  // ? 0.15 saniye
-    override var sequentialMainPageScrollDelay = 150L  // ? 0.15 saniye
+    var sequentialMainPage = true        // * https://recloudstream.github.io/dokka/-cloudstream/com.lagradost.cloudstream3/-main-a-p-i/index.html#-2049735995%2FProperties%2F101969414
+    var sequentialMainPageDelay       = 150L  // ? 0.15 saniye
+    var sequentialMainPageScrollDelay = 150L  // ? 0.15 saniye
 
     // ! CloudFlare v2
     private val cloudflareKiller by lazy { CloudflareKiller() }
@@ -52,31 +54,31 @@ class DiziKorea : MainAPI() {
         "${mainUrl}/sayfa/cin-filmleri/"        to "Çin Filmleri"
     )
 
-    override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
+    override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse = with(api) {
         val document = app.get("${request.data}${page}", interceptor = interceptor).document
         Log.d("DZK", "Ana sayfa HTML içeriği:\n${document.outerHtml()}")
         val home     = document.select("div.poster-long").mapNotNull { it.toSearchResult() }
 
-        return newHomePageResponse(request.name, home)
+        return@with newHomePageResponse(request.name, home)
     }
 
-    private fun Element.toSearchResult(): SearchResponse? {
-        val title     = this.selectFirst("h2")?.text()?.trim() ?: return null
-        val href      = fixUrlNull(this.selectFirst("a")?.attr("href")) ?: return null
-        val posterUrl = fixUrlNull(this.selectFirst("div.poster-long-image img.lazy")?.attr("data-src"))
+    private fun Element.toSearchResult(): SearchResponse? = with(api) {
+        val title     = this@toSearchResult.selectFirst("h2")?.text()?.trim() ?: return null
+        val href      = fixUrlNull(this@toSearchResult.selectFirst("a")?.attr("href")) ?: return null
+        val posterUrl = fixUrlNull(this@toSearchResult.selectFirst("div.poster-long-image img.lazy")?.attr("data-src"))
 
         return newTvSeriesSearchResponse(title, href, TvType.AsianDrama) { this.posterUrl = posterUrl }
     }
 
-    private fun Element.toPostSearchResult(): SearchResponse? {
-        val title     = this.selectFirst("span")?.text()?.trim() ?: return null
-        val href      = fixUrlNull(this.selectFirst("a")?.attr("href")) ?: return null
-        val posterUrl = fixUrlNull(this.selectFirst("div.poster-long-image img.lazy")?.attr("data-src"))
+    private fun Element.toPostSearchResult(): SearchResponse? = with(api) {
+        val title     = this@toPostSearchResult.selectFirst("span")?.text()?.trim() ?: return null
+        val href      = fixUrlNull(this@toPostSearchResult.selectFirst("a")?.attr("href")) ?: return null
+        val posterUrl = fixUrlNull(this@toPostSearchResult.selectFirst("div.poster-long-image img.lazy")?.attr("data-src"))
 
         return newTvSeriesSearchResponse(title, href, TvType.AsianDrama) { this.posterUrl = posterUrl }
     }
 
-    override suspend fun search(query: String): List<SearchResponse> {
+    override suspend fun search(query: String): List<SearchResponse> = with(api) {
         val response = app.post(
             "${mainUrl}/search",
             headers = mapOf("X-Requested-With" to "XMLHttpRequest"),
@@ -95,12 +97,12 @@ class DiziKorea : MainAPI() {
             }
         }
 
-        return results
+        return@with results
     }
 
     override suspend fun quickSearch(query: String): List<SearchResponse> = search(query)
 
-    override suspend fun load(url: String): LoadResponse? {
+    override suspend fun load(url: String): LoadResponse? = with(api) {
         val document = app.get(url, interceptor = interceptor).document
 
         val title       = document.selectFirst("h1 a")?.text()?.trim() ?: return null
@@ -132,7 +134,7 @@ class DiziKorea : MainAPI() {
                 }
             }
 
-            return newTvSeriesLoadResponse(title, url, TvType.AsianDrama, episodes) {
+            return@with newTvSeriesLoadResponse(title, url, TvType.AsianDrama, episodes) {
                 this.posterUrl = poster
                 this.year      = year
                 this.plot      = description
@@ -142,7 +144,7 @@ class DiziKorea : MainAPI() {
                 addTrailer(trailerUrl)
             }
         } else {
-            return newMovieLoadResponse(title, url, TvType.AsianDrama, url) {
+            return@with newMovieLoadResponse(title, url, TvType.AsianDrama, url) {
                 this.posterUrl = poster
                 this.year      = year
                 this.plot      = description
@@ -155,24 +157,23 @@ class DiziKorea : MainAPI() {
     }
 
     override suspend fun loadLinks(
-    data: String,
-    isCasting: Boolean,
-    subtitleCallback: (SubtitleFile) -> Unit,
-    callback: (ExtractorLink) -> Unit
-): Boolean {
-    Log.d("DZK", "data » $data")
-    val document = app.get(data, interceptor = interceptor).document
+        data: String,
+        isCasting: Boolean,
+        subtitleCallback: (SubtitleFile) -> Unit,
+        callback: (ExtractorLink) -> Unit
+    ): Boolean = with(api) {
+        Log.d("DZK", "data » $data")
+        val document = app.get(data, interceptor = interceptor).document
 
-    document.select("div.video-services button").forEach {
-        val rawHhs = it.attr("data-hhs")
-        Log.d("DZK", "Found button with data-hhs: $rawHhs")
+        document.select("div.video-services button").forEach {
+            val rawHhs = it.attr("data-hhs")
+            Log.d("DZK", "Found button with data-hhs: $rawHhs")
 
-        val iframe = fixUrlNull(rawHhs) ?: return@forEach
-        Log.d("DZK", "iframe » $iframe")
+            val iframe = fixUrlNull(rawHhs) ?: return@forEach
+            Log.d("DZK", "iframe » $iframe")
 
-        loadExtractor(iframe, "$mainUrl/", subtitleCallback, callback)
-    }
-
-    return true
+            loadExtractor(iframe, "$mainUrl/", subtitleCallback, callback)
+        }
+        return@with true
     }
 }
