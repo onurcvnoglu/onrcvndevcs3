@@ -11,7 +11,10 @@ import com.onurcvnoglu.asyaextra.trasyalog.*
 @CloudstreamPlugin
 class AsyaExtraPlugin: Plugin() {
     override fun load(context: Context) {
-        registerMainAPI(AsyaExtra())
+        // Seçili sağlayıcıları doğrudan Cloudstream'e kaydediyoruz (SDK başlatma gereksinimi)
+        registerMainAPI(DiziKorea())
+        registerMainAPI(KoreanTurk())
+        registerMainAPI(TRasyalog())
         registerExtractorAPI(VideoSeyred())
         registerExtractorAPI(PlayerKorea())
     }
