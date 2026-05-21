@@ -30,7 +30,7 @@ class MainUrlUpdater:
         except Exception:
             return None
             
-        start_match = re.search(r'providers\s*=\s*listOf\s*\(', icerik)
+        start_match = re.search(r'providers\s*(?::\s*[^=]+)?=\s*listOf\s*(?:<[^>]+>)?\s*\(', icerik)
         if not start_match:
             return None
             
@@ -54,7 +54,7 @@ class MainUrlUpdater:
             line_clean = line.strip()
             if line_clean.startswith("//"):
                 continue
-            class_matches = re.findall(r'([a-zA-Z0-9_]+)\s*\(\)', line_clean)
+            class_matches = re.findall(r'([a-zA-Z0-9_]+)\s*\((?:this)?\)', line_clean)
             aktifler.extend(class_matches)
             
         return set(aktifler)
@@ -87,7 +87,7 @@ class MainUrlUpdater:
     def _mainurl_bul(self, kt_dosya_yolu):
         with open(kt_dosya_yolu, "r", encoding="utf-8") as file:
             icerik = file.read()
-            if mainurl := re.search(r'override\s+var\s+mainUrl\s*=\s*"([^"]+)"', icerik):
+            if mainurl := re.search(r'(?:override\s+)?(?:var|val)\s+mainUrl\s*=\s*"([^"]+)"', icerik):
                 return mainurl[1]
         return None
 
