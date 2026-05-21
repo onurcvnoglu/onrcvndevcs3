@@ -41,10 +41,10 @@
         "name": "AsyaExtra"
     },
     {
-        "fileHash": "sha256-ee28e942ac2ce7a62b8b756b4619a15e804986eaf4d102aeb901d366ae29cf0c",
+        "fileHash": "sha256-5c1fcbf040532f594003ed942f2654f632122da217ada50e447852f7b579b7fc",
         "apiVersion": 1,
         "repositoryUrl": "https://github.com/onurcvnoglu/onrcvndevcs3",
-        "fileSize": 148662,
+        "fileSize": 148666,
         "status": 1,
         "language": "tr",
         "authors": [
@@ -54,17 +54,17 @@
             "TvSeries",
             "Others"
         ],
-        "version": 1,
+        "version": 3,
         "internalName": "DiziExtra",
         "description": "DiziExtra - Dizi sa\u011flay\u0131c\u0131lar\u0131 paketi.",
         "url": "https://raw.githubusercontent.com/onurcvnoglu/onrcvndevcs3/builds/DiziExtra.cs3",
         "name": "DiziExtra"
     },
     {
-        "fileHash": "sha256-b8e19c99a776df30f1f0ed94f529157a6b770ecf1d30c958fb59702940e8f74a",
+        "fileHash": "sha256-30bb722388a2a8291726779ca7e15446f8042bc0f4eee8d655acae37a943954c",
         "apiVersion": 1,
         "repositoryUrl": "https://github.com/onurcvnoglu/onrcvndevcs3",
-        "fileSize": 286953,
+        "fileSize": 286964,
         "status": 1,
         "language": "tr",
         "authors": [
@@ -74,7 +74,7 @@
             "Movie",
             "Others"
         ],
-        "version": 1,
+        "version": 3,
         "internalName": "FilmExtra",
         "description": "FilmExtra - Film sa\u011flay\u0131c\u0131lar\u0131 paketi.",
         "url": "https://raw.githubusercontent.com/onurcvnoglu/onrcvndevcs3/builds/FilmExtra.cs3",
