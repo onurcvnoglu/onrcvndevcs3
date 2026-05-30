@@ -17,7 +17,7 @@ import com.onurcvnoglu.diziextra.tlctr.*
 
 class DiziExtra : MainAPI() {
     override var name = "Dizi Extra"
-    override var mainUrl = "https://dizipal2072.com"
+    override var mainUrl = "https://dizipal2075.com"
     override val supportedTypes = setOf(TvType.TvSeries, TvType.Movie)
     override var lang = "tr"
     override val hasMainPage = true
