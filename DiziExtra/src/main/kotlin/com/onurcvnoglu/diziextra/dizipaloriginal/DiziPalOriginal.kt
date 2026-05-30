@@ -17,7 +17,7 @@ import com.lagradost.cloudstream3.utils.newExtractorLink
 class DiziPalOriginal : MainAPI() {
     private val api: MainAPI get() = this
 
-    override var mainUrl              = "https://dizipal2072.com"
+    override var mainUrl              = "https://dizipal2075.com"
     override var name                 = "DiziPalOriginal"
     override val hasMainPage          = true
     override var lang                 = "tr"

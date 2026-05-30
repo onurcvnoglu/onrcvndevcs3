@@ -14,7 +14,7 @@ import kotlinx.coroutines.launch
 class SezonlukDizi : MainAPI() {
     private val api: MainAPI get() = this
 
-    override var mainUrl     = "https://sezonlukdizi8.com"
+    override var mainUrl     = "https://sezonlukdizi.cc"
     override var name        = "SezonlukDizi"
     override val hasMainPage = true
     override var lang                 = "tr"
